@@ -13,14 +13,37 @@ export default async function CasosPage({
   const page = Math.max(1, parseInt(searchParams.page ?? '1'))
   const offset = (page - 1) * PAGE_SIZE
 
+  // Buscar también por integrantes: nombre, apellido, cédula
+  // Pre-query en personas para obtener caso_ids que coincidan con el término
+  let extraCasoIds: string[] = []
+  if (searchParams.q) {
+    const q = searchParams.q.trim()
+    const { data: personasMatch } = await admin
+      .from('personas')
+      .select('caso_id')
+      .or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,cedula.ilike.%${q}%`)
+    if (personasMatch?.length) {
+      extraCasoIds = Array.from(new Set(personasMatch.map((p: any) => p.caso_id as string)))
+    }
+  }
+
   let query = admin
     .from('casos')
-    .select('id, nombre_caso, tipo, estado, num_integrantes, ciudad_origen, sector_coro, created_at, tutor:voluntarios!casos_tutor_id_fkey(nombre_completo)', { count: 'exact' })
+    .select('id, nombre_caso, tipo, estado, ciudad_origen, sector_coro, created_at, personas(count), tutor:voluntarios!casos_tutor_id_fkey(nombre_completo)', { count: 'exact' })
     .order('created_at', { ascending: false })
 
   if (searchParams.estado) query = query.eq('estado', searchParams.estado)
-  if (searchParams.q) query = query.ilike('nombre_caso', `%${searchParams.q}%`)
   if (searchParams.sinTutor === '1') query = query.is('tutor_id', null)
+  if (searchParams.q) {
+    const q = searchParams.q.trim()
+    // Busca en: nombre del caso, ciudad de origen, sector, zona afectada, estado de origen
+    const camposCaso = `nombre_caso.ilike.%${q}%,ciudad_origen.ilike.%${q}%,sector_coro.ilike.%${q}%,zona_afectada.ilike.%${q}%,estado_origen.ilike.%${q}%`
+    if (extraCasoIds.length > 0) {
+      query = query.or(`${camposCaso},id.in.(${extraCasoIds.join(',')})`)
+    } else {
+      query = query.or(camposCaso)
+    }
+  }
 
   const { data: casos, count: totalCasos } = await query.range(offset, offset + PAGE_SIZE - 1)
 
@@ -62,7 +85,7 @@ export default async function CasosPage({
         <input
           name="q"
           defaultValue={searchParams.q}
-          placeholder="Buscar por nombre..."
+          placeholder="Buscar por nombre, integrante, cédula, sector..."
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm flex-1 min-w-36 focus:outline-none focus:ring-2 focus:ring-cyan-500"
         />
         <select
@@ -153,7 +176,9 @@ export default async function CasosPage({
               <div className="space-y-0.5 text-xs text-gray-500">
                 <p>
                   {caso.tipo === 'familiar' ? '👨‍👩‍👧‍👦' : '👤'}{' '}
-                  {caso.tipo === 'familiar' ? `Grupo familiar · ${caso.num_integrantes} personas` : 'Persona individual'}
+                  {caso.tipo === 'familiar'
+                    ? `Grupo familiar · ${(caso.personas as any)?.[0]?.count ?? 0} personas`
+                    : 'Persona individual · 1 persona'}
                 </p>
                 {(caso.ciudad_origen || caso.sector_coro) && (
                   <p>📍 {[caso.sector_coro, caso.ciudad_origen].filter(Boolean).join(' · ')}</p>

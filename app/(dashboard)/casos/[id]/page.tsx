@@ -13,7 +13,7 @@ import EquipoCaso from '@/components/casos/EquipoCaso'
 import EliminarCaso from '@/components/casos/EliminarCaso'
 import IntegranteCard from '@/components/casos/IntegranteCard'
 import Link from 'next/link'
-import { ArrowLeft, ClipboardList } from 'lucide-react'
+import { ArrowLeft, ClipboardList, Pencil } from 'lucide-react'
 
 export default async function FichaCasoPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
@@ -123,14 +123,54 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
   const responsableNombre = (caso.tutor as any)?.nombre_completo ?? null
   const registradorNombre = (caso.registrador as any)?.nombre_completo ?? null
 
-  // Artículos asignados a cada integrante (para gestión por persona en su tarjeta)
+  // Artículos asignados a cada integrante (para gestión por persona en su tarjeta).
+  // Si la necesidad completa está marcada como entregada, propagamos ese estado a cada ítem.
   const itemsPorPersona: Record<string, { necesidadId: string; categoria: string; item: any }[]> = {}
   ;(caso.necesidades ?? []).forEach((nec: any) => {
+    const necResuelta = nec.estado === 'entregado'
     ;(nec.items_entrega?.items ?? []).forEach((item: any) => {
       if (item?.persona_id) {
-        (itemsPorPersona[item.persona_id] ??= []).push({ necesidadId: nec.id, categoria: nec.categoria, item })
+        (itemsPorPersona[item.persona_id] ??= []).push({
+          necesidadId: nec.id,
+          categoria: nec.categoria,
+          item: necResuelta ? { ...item, entregado: true } : item,
+        })
       }
     })
+  })
+
+  // Artículos de medicamentos sin persona_id asignada.
+  // Se usan como fallback para personas con condicion_especial sin ítems directos,
+  // mostrando el checklist real de medicamentos en su tarjeta de integrante.
+  const medItemsGenerales: { necesidadId: string; categoria: string; item: any }[] = []
+  ;(caso.necesidades ?? []).forEach((nec: any) => {
+    if (nec.categoria === 'medicamentos') {
+      const necResuelta = nec.estado === 'entregado'
+      ;(nec.items_entrega?.items ?? []).forEach((item: any) => {
+        if (!item?.persona_id) {
+          medItemsGenerales.push({
+            necesidadId: nec.id,
+            categoria: nec.categoria,
+            item: necResuelta ? { ...item, entregado: true } : item,
+          })
+        }
+      })
+    }
+  })
+  // Asignar fallback: personas con condicion_especial y sin ítems propios ven los medicamentos generales
+  ;(caso.personas ?? []).forEach((p: any) => {
+    if (!(itemsPorPersona[p.id]?.length) && p.condicion_especial && medItemsGenerales.length > 0) {
+      itemsPorPersona[p.id] = medItemsGenerales
+    }
+  })
+
+  // condicionAtendida: todos los ítems del integrante (directos o fallback) están entregados
+  const condicionAtendidaPorPersona: Record<string, boolean> = {}
+  ;(caso.personas ?? []).forEach((p: any) => {
+    const items = itemsPorPersona[p.id] ?? []
+    condicionAtendidaPorPersona[p.id] = items.length > 0
+      ? items.every(e => e.item.entregado)
+      : false
   })
 
   const TIPO_ALOJAMIENTO_LABEL: Record<string, string> = {
@@ -150,13 +190,24 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
                 {ESTADO_CASO_LABELS[caso.estado]}
               </span>
             </div>
-            <p className="text-gray-500 text-sm mt-1 capitalize">
-              {caso.tipo} · {caso.num_integrantes} integrante(s) · Registrado por {(caso.registrador as any)?.nombre_completo}
+            <p className="text-gray-500 text-sm mt-1">
+              {caso.tipo === 'familiar' ? 'Grupo familiar' : 'Persona individual'} · {caso.personas?.length ?? 0} integrantes · Registrado por {(caso.registrador as any)?.nombre_completo}
             </p>
           </div>
-          <Link href="/casos" className="text-sm text-gray-400 hover:text-cyan-600 flex items-center gap-1 transition">
-            <ArrowLeft className="w-4 h-4" /> Volver
-          </Link>
+          <div className="flex items-center gap-2">
+            {puedeEditar && (
+              <Link
+                href={`/casos/${caso.id}/editar`}
+                className="flex items-center gap-1.5 bg-[#0891B2] hover:bg-[#0C4A6E] text-white px-3 py-1.5 rounded-lg text-sm font-medium transition btn-press"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+                Editar caso
+              </Link>
+            )}
+            <Link href="/casos" className="text-sm text-gray-400 hover:text-cyan-600 flex items-center gap-1 transition">
+              <ArrowLeft className="w-4 h-4" /> Volver
+            </Link>
+          </div>
         </div>
 
         {/* Grid de ubicación — editable inline */}
@@ -245,6 +296,7 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
               itemsPersona={itemsPorPersona[persona.id] ?? []}
               equipo={equipoCaso}
               puedeEditar={puedeEditar}
+              condicionAtendida={condicionAtendidaPorPersona[persona.id] ?? false}
             />
           ))}
         </div>
@@ -252,12 +304,15 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
 
       {/* Necesidades */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <h3 className="font-semibold text-gray-800">
             Necesidades ({caso.necesidades?.length ?? 0})
           </h3>
           <AgregarNecesidad casoId={caso.id} personas={caso.personas ?? []} />
         </div>
+        <p className="text-xs text-gray-400 mb-4">
+          Registra aquí qué necesita esta familia: alimentos, medicamentos, ropa, traslado, etc. Marca cada ítem como entregado cuando se resuelva.
+        </p>
 
         {caso.necesidades && caso.necesidades.length > 0 ? (
           <div className="space-y-2">
@@ -280,15 +335,19 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
         )}
       </div>
 
-      {/* Bitácora de seguimiento */}
+      {/* Ruta de seguimiento */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
           <h3 className="font-semibold text-gray-800 flex items-center gap-2">
             <ClipboardList className="w-4 h-4 text-cyan-500" />
-            Bitácora de seguimiento ({seguimientos?.length ?? 0})
+            Ruta de seguimiento ({seguimientos?.length ?? 0})
           </h3>
           <AgregarSeguimiento casoId={caso.id} />
         </div>
+        <p className="text-xs text-gray-400 mb-4">
+          Registra cada contacto con este caso: visita realizada, llamada hecha, entrega completada o gestión adelantada.
+          Si el caso se resuelve en una sola visita, agrega ese único registro. Si requiere varias visitas en el tiempo, aquí queda el historial completo del acompañamiento.
+        </p>
         <BitacoraSeguimiento seguimientos={seguimientos ?? []} />
       </div>
 

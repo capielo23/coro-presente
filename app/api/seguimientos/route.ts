@@ -8,6 +8,7 @@ const schema = z.object({
   tipo_contacto: z.enum(['visita', 'llamada', 'whatsapp', 'entrega', 'gestion']),
   descripcion: z.string().trim().min(1, 'La descripción es obligatoria').max(2000),
   proximos_pasos: z.string().trim().max(2000).optional(),
+  fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 })
 
 export async function POST(request: NextRequest) {

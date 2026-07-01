@@ -1,9 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS } from '@/lib/utils'
 import FotoLightbox from '@/components/ui/FotoLightbox'
-import { User, Phone, AlertTriangle, Check, Undo2, ChevronDown, ChevronRight, PackageCheck } from 'lucide-react'
+import { User, Phone, AlertTriangle, CheckCircle2, Check, Undo2, ChevronDown, ChevronRight, PackageCheck } from 'lucide-react'
 
 interface Item { id?: string; texto: string; entregado: boolean; entregado_por?: string | null; marcado_por?: string | null; fecha?: string; nota?: string | null }
 interface Entry { necesidadId: string; categoria: string; item: Item }
@@ -17,10 +17,17 @@ function fmtFecha(iso?: string) {
 const selectCls = 'text-xs px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500'
 
 export default function IntegranteCard({
-  persona, itemsPersona, equipo = [], puedeEditar,
-}: { persona: any; itemsPersona: Entry[]; equipo?: Voluntario[]; puedeEditar: boolean }) {
+  persona, itemsPersona, equipo = [], puedeEditar, condicionAtendida = false,
+}: { persona: any; itemsPersona: Entry[]; equipo?: Voluntario[]; puedeEditar: boolean; condicionAtendida?: boolean }) {
   const router = useRouter()
   const [entries, setEntries] = useState<Entry[]>(itemsPersona)
+
+  // Sincronizar con datos frescos del servidor tras router.refresh()
+  // La "llave" cambia solo cuando varía el conteo o el estado de entrega real
+  const serverKey = `${itemsPersona.length}:${itemsPersona.filter(e => e.item.entregado).length}`
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setEntries(itemsPersona) }, [serverKey])
+
   const [abierto, setAbierto] = useState(false)
   const [entregandoKey, setEntregandoKey] = useState<string | null>(null)
   const [deliverer, setDeliverer] = useState('')
@@ -97,8 +104,13 @@ export default function IntegranteCard({
             </p>
           )}
           {persona.condicion_especial && (
-            <p className="text-orange-600 text-xs mt-1 flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 shrink-0" /> {persona.condicion_especial}
+            <p className={`text-xs mt-1 flex items-center gap-1 ${condicionAtendida ? 'text-gray-400' : 'text-orange-600'}`}>
+              {condicionAtendida
+                ? <CheckCircle2 className="w-3 h-3 shrink-0" />
+                : <AlertTriangle className="w-3 h-3 shrink-0" />
+              }
+              {persona.condicion_especial}
+              {condicionAtendida && <span className="italic ml-0.5">(atendido)</span>}
             </p>
           )}
         </div>

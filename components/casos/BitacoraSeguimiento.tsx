@@ -26,9 +26,11 @@ export default function BitacoraSeguimiento({ seguimientos }: { seguimientos: an
     )
   }
 
-  const ordenados = [...seguimientos].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
+  const ordenados = [...seguimientos].sort((a, b) => {
+    const fa = a.fecha ?? a.created_at.slice(0, 10)
+    const fb = b.fecha ?? b.created_at.slice(0, 10)
+    return fb.localeCompare(fa)
+  })
 
   return (
     <div className="space-y-3">
@@ -47,7 +49,7 @@ export default function BitacoraSeguimiento({ seguimientos }: { seguimientos: an
                 </span>
                 <span>·</span>
                 <span>
-                  {new Date(s.created_at).toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })}
+                  {new Date((s.fecha ? s.fecha + 'T12:00:00' : s.created_at)).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: '2-digit' })}
                 </span>
                 {s.voluntario?.nombre_completo && (
                   <>

@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS, ESTADO_NECESIDAD_COLORS } from '@/lib/utils'
 import { RefreshCw, Check, RotateCcw, ClipboardEdit, UserCog, ListChecks, Undo2, PackageCheck, User, Plus, X, Pencil, Trash2, AlertCircle } from 'lucide-react'
@@ -42,12 +42,9 @@ export default function NecesidadGestion({
   const router = useRouter()
   const [estado, setEstado] = useState<string>(nec.estado)
   const [data, setData] = useState<ItemsData | null>(nec.items_entrega?.items?.length ? (nec.items_entrega as ItemsData) : null)
-  const [entregaGuardada, setEntregaGuardada] = useState<string>(nec.descripcion_entrega || '')
-  const [entregandoKey, setEntregandoKey] = useState<string | null>(null) // artículo en proceso de entrega
-  const [deliverer, setDeliverer] = useState('') // '' = Equipo CoroAyuda
-  const [notaItem, setNotaItem] = useState('') // nota / incidencia de la entrega
-  const [formSimple, setFormSimple] = useState(false)
-  const [descSimple, setDescSimple] = useState('')
+  const [entregaGuardada] = useState<string>(nec.descripcion_entrega || '')
+  const [entregandoKey, setEntregandoKey] = useState<string | null>(null)
+  const [deliverer, setDeliverer] = useState('')
   const [periodoAbierto, setPeriodoAbierto] = useState(false)
   const [periodoNota, setPeriodoNota] = useState('')
   // Editor para detallar / agregar artículos
@@ -68,6 +65,14 @@ export default function NecesidadGestion({
   const [eliminado, setEliminado] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Sincronizar checklist y estado cuando el servidor envía datos frescos (tras router.refresh())
+  const serverKey = `${nec.items_entrega?.total}:${nec.items_entrega?.entregados}:${nec.estado}`
+  useEffect(() => {
+    if (nec.items_entrega?.items?.length) setData(nec.items_entrega as ItemsData)
+    setEstado(nec.estado)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverKey])
 
   const esRecurrente = !!nec.es_recurrente
   const tieneItems = !esRecurrente && !!data?.items?.length
@@ -118,8 +123,8 @@ export default function NecesidadGestion({
   }
 
   async function entregarItem(it: Item) {
-    const row = await patch({ accion: 'entregar_item', item_id: it.id, item_texto: it.texto, entregado_por_id: deliverer || undefined, nota: notaItem || undefined })
-    if (row) { setData(row.items_entrega); setEstado(row.estado); setEntregandoKey(null); setDeliverer(''); setNotaItem('') }
+    const row = await patch({ accion: 'entregar_item', item_id: it.id, item_texto: it.texto, entregado_por_id: deliverer || undefined })
+    if (row) { setData(row.items_entrega); setEstado(row.estado); setEntregandoKey(null); setDeliverer('') }
   }
   async function desmarcarItem(it: Item) {
     const row = await patch({ accion: 'desmarcar_item', item_id: it.id, item_texto: it.texto })
@@ -142,8 +147,14 @@ export default function NecesidadGestion({
     setEditTexto('')
   }
   async function guardarDetalle() {
-    if (editItems.length === 0) return
-    const payload = editItems.map(i => ({ texto: i.texto, persona_id: i.persona_id || undefined }))
+    // Auto-recoger texto pendiente en el campo si el usuario no clickeó "+ Agregar"
+    const extra = editTexto.trim()
+      ? [{ texto: editTexto.trim(), persona_id: editPersona || null }]
+      : []
+    const itemsFinal = [...editItems, ...extra]
+    if (itemsFinal.length === 0) return
+    if (extra.length) setEditTexto('')
+    const payload = itemsFinal.map(i => ({ texto: i.texto, persona_id: i.persona_id || undefined }))
     const row = await patch({ accion: tieneItems ? 'agregar_item' : 'desglosar', items: payload })
     if (row) { setData(row.items_entrega); setEstado(row.estado); setDetallarAbierto(false); setEditItems([]) }
   }
@@ -180,13 +191,9 @@ export default function NecesidadGestion({
       setEliminado(true); router.refresh()
     } catch { setError('No se pudo eliminar.') } finally { setLoading(false) }
   }
-  async function patchEstado(nuevoEstado: string, descripcion_entrega?: string) {
-    const row = await patch({ estado: nuevoEstado, descripcion_entrega, entregado_por_id: deliverer || undefined })
-    if (row) {
-      setEstado(nuevoEstado)
-      if (descripcion_entrega) setEntregaGuardada(descripcion_entrega)
-      setFormSimple(false); setDeliverer('')
-    }
+  async function patchEstado(nuevoEstado: string) {
+    const row = await patch({ estado: nuevoEstado, entregado_por_id: deliverer || undefined })
+    if (row) { setEstado(nuevoEstado); setDeliverer('') }
   }
   async function registrarPeriodo() {
     const row = await patch({ accion: 'entrega_periodo', entregado_por_id: deliverer || undefined, descripcion_entrega: periodoNota || undefined })
@@ -397,21 +404,17 @@ export default function NecesidadGestion({
                             <button onClick={() => setItemDelete(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
                           </div>
                         )}
-                        {/* Selector inline de deliverer + nota/incidencia */}
+                        {/* Confirmación de entrega: solo quién entregó */}
                         {enProceso && puedeEditar && (
-                          <div className="ml-6 mt-1 bg-cyan-50 border border-cyan-100 rounded-lg p-2 space-y-1.5">
+                          <div className="ml-6 mt-1 bg-cyan-50 border border-cyan-100 rounded-lg p-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
                               {SelectorDeliverer}
-                            </div>
-                            <input value={notaItem} onChange={e => setNotaItem(e.target.value)} placeholder="Nota / incidencia (opcional)"
-                              className="w-full text-xs px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-                            <div className="flex gap-2">
                               <button onClick={() => entregarItem(item)} disabled={loading}
                                 className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition btn-press">
-                                {loading ? '...' : 'Confirmar entrega'}
+                                {loading ? '...' : '✓ Confirmar'}
                               </button>
-                              <button onClick={() => { setEntregandoKey(null); setDeliverer(''); setNotaItem('') }} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+                              <button onClick={() => { setEntregandoKey(null); setDeliverer('') }} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
                             </div>
                           </div>
                         )}
@@ -476,58 +479,38 @@ export default function NecesidadGestion({
         <p className="text-green-600 text-xs mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> {entregaGuardada}</p>
       )}
 
-      {/* Acciones modo simple */}
-      {!tieneItems && !esRecurrente && puedeEditar && !formSimple && (
-        <div className="mt-2.5 flex flex-wrap gap-2">
-          {!detallarAbierto && (
-            <button onClick={abrirDetalle} disabled={loading}
-              className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-              <ListChecks className="w-3.5 h-3.5" /> Detallar artículos
-            </button>
-          )}
-          {estado === 'pendiente' && (
-            <button onClick={() => patchEstado('en_gestion')} disabled={loading}
-              className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-              <ClipboardEdit className="w-3.5 h-3.5" /> Tomar en gestión
-            </button>
-          )}
-          {estado === 'en_gestion' && (
-            <>
-              <button onClick={() => setFormSimple(true)}
-                className="flex items-center gap-1 text-xs text-green-700 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg hover:bg-green-100 transition btn-press">
-                <Check className="w-3.5 h-3.5" /> Marcar entregado
+      {/* Acciones modo sin ítems */}
+      {!tieneItems && !esRecurrente && puedeEditar && (
+        <div className="mt-2.5 space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {!detallarAbierto && (
+              <button onClick={abrirDetalle} disabled={loading}
+                className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
+                <ListChecks className="w-3.5 h-3.5" /> Detallar artículos
               </button>
+            )}
+            {estado === 'pendiente' && (
+              <button onClick={() => patchEstado('en_gestion')} disabled={loading}
+                className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
+                <ClipboardEdit className="w-3.5 h-3.5" /> Tomar en gestión
+              </button>
+            )}
+            {(estado === 'en_gestion' || estado === 'entregado' || estado === 'parcial') && (
               <button onClick={() => patchEstado('pendiente')} disabled={loading}
                 className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition btn-press">
-                <RotateCcw className="w-3.5 h-3.5" /> Devolver
+                <RotateCcw className="w-3.5 h-3.5" /> Devolver a pendiente
               </button>
-            </>
-          )}
-          {(estado === 'entregado' || estado === 'parcial') && (
-            <button onClick={() => patchEstado('pendiente')} disabled={loading}
-              className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition btn-press">
-              <RotateCcw className="w-3.5 h-3.5" /> Reabrir necesidad
-            </button>
+            )}
+          </div>
+          {!detallarAbierto && (
+            <p className="text-[11px] text-gray-400 flex items-center gap-1">
+              <ListChecks className="w-3 h-3 shrink-0" />
+              Agrega los artículos específicos con "Detallar artículos" para poder marcar cada entrega.
+            </p>
           )}
         </div>
       )}
       {!tieneItems && !esRecurrente && error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-
-      {/* Formulario simple de entrega con selector de deliverer */}
-      {!tieneItems && !esRecurrente && formSimple && (
-        <div className="mt-2 flex flex-wrap gap-2 items-center bg-cyan-50 border border-cyan-100 rounded-lg p-2">
-          <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
-          {SelectorDeliverer}
-          <input value={descSimple} onChange={e => setDescSimple(e.target.value)} placeholder="¿Qué se entregó? (opcional)" autoFocus
-            onKeyDown={e => { if (e.key === 'Enter') patchEstado('entregado', descSimple || undefined); if (e.key === 'Escape') setFormSimple(false) }}
-            className="flex-1 min-w-[120px] text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-          <button onClick={() => patchEstado('entregado', descSimple || undefined)} disabled={loading}
-            className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg disabled:opacity-50 transition btn-press">
-            {loading ? '...' : 'Confirmar'}
-          </button>
-          <button onClick={() => { setFormSimple(false); setDeliverer('') }} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
-        </div>
-      )}
 
       {/* Editor para detallar / agregar artículos (con dueño por miembro) */}
       {detallarAbierto && puedeEditar && (
@@ -566,7 +549,7 @@ export default function NecesidadGestion({
             </ul>
           )}
           <div className="flex gap-2">
-            <button onClick={guardarDetalle} disabled={loading || editItems.length === 0}
+            <button onClick={guardarDetalle} disabled={loading || (editItems.length === 0 && !editTexto.trim())}
               className="text-xs bg-[#0891B2] hover:bg-[#0C4A6E] text-white px-3 py-1.5 rounded-lg disabled:opacity-50 transition btn-press">
               {loading ? 'Guardando...' : 'Guardar'}
             </button>
