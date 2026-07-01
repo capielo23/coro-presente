@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Coro Presente
 
-## Getting Started
+Sistema de gestión de ayuda humanitaria para personas afectadas por desastres naturales en el estado Falcón, Venezuela.
 
-First, run the development server:
+Permite registrar casos, coordinar voluntarios, hacer seguimiento de entregas y publicar datos de transparencia sin exponer información personal.
+
+**Producción:** https://coropresente.com
+
+---
+
+## Para colaboradores nuevos
+
+### Qué necesitas instalar
+
+- [Node.js 18+](https://nodejs.org)
+- [Git](https://git-scm.com)
+- Un editor de código (VS Code recomendado)
+
+### Primeros pasos
+
+```bash
+git clone https://github.com/capielo23/coro-presente.git
+cd coro-presente
+npm install
+```
+
+Crea el archivo `.env.local` en la raíz del proyecto con las credenciales que te dará el administrador (`capielo23@gmail.com`). El archivo `.env.example` muestra qué variables necesitas.
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Variables de entorno necesarias
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+NEXT_PUBLIC_APP_NAME=Coro Presente
+NEXT_PUBLIC_APP_URL=https://coropresente.com
+SUPABASE_STORAGE_BUCKET=fotos-personas
+```
 
-## Learn More
+Pídele los valores al administrador. **Nunca subas `.env.local` a GitHub** — ya está en `.gitignore`.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Estructura del proyecto
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+app/
+  (auth)/          — Login, registro, recuperar contraseña
+  (dashboard)/     — Dashboard, casos, perfil, admin
+  api/             — API routes (casos, necesidades, seguimientos, etc.)
+  buscar/          — Portal público de búsqueda (sin login)
+  transparencia/   — Portal de transparencia pública (sin login)
+components/
+  casos/           — Componentes de ficha y gestión de casos
+  admin/           — Panel de aprobación de voluntarios
+  ui/              — Componentes reutilizables
+lib/
+  supabase/        — Clientes de Supabase (server, client, admin)
+  types.ts         — Tipos TypeScript del dominio
+  matching.ts      — Algoritmo de matching voluntario <-> caso
+supabase/
+  migrations/      — Migraciones SQL aplicadas en orden
+```
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stack técnico
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Capa | Tecnología |
+|------|-----------|
+| Frontend | Next.js 14 (App Router) + TypeScript |
+| Estilos | Tailwind CSS |
+| Base de datos | Supabase (PostgreSQL) |
+| Autenticación | Supabase Auth |
+| Storage (fotos) | Supabase Storage |
+| Deploy | Vercel |
+
+---
+
+## Roles en el sistema
+
+| Rol | Puede hacer |
+|-----|-------------|
+| **Admin** | Todo: aprobar coordinadores, ver estadísticas, gestionar usuarios |
+| **Coordinador** | Registrar y aprobar voluntarios, gestionar casos |
+| **Voluntario** | Ver y tomar casos, registrar seguimientos y entregas |
+
+El registro público crea voluntarios en estado `pendiente`. Un coordinador o admin los aprueba desde `/admin/voluntarios`.
+
+---
+
+## Reglas de seguridad (no negociables)
+
+- `.env.local` **nunca** va a GitHub
+- `SUPABASE_SERVICE_ROLE_KEY` **nunca** en código del cliente (solo en API routes del servidor)
+- El portal público (`/buscar`, `/transparencia`) **nunca** expone: dirección exacta, teléfono, cédula ni datos médicos
+- Las fotos usan URLs firmadas que expiran — no son indexables
+
+---
+
+## Comandos útiles
+
+```bash
+npm run dev       # Servidor de desarrollo en localhost:3000
+npm run build     # Build de producción (verifica errores antes de hacer push)
+npm run lint      # Revisión de código
+```
+
+---
+
+## Contacto
+
+Administrador del proyecto: **capielo23@gmail.com**
