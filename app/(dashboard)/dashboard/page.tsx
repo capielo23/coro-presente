@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { unstable_cache } from 'next/cache'
 import StatCard from '@/components/ui/StatCard'
+import EstadisticasAmpliadas from '@/components/dashboard/EstadisticasAmpliadas'
+import FiltroGrupo from '@/components/dashboard/FiltroGrupo'
 import Link from 'next/link'
 import { ESTADO_CASO_COLORS, ESTADO_CASO_LABELS } from '@/lib/utils'
 import { Users2, OctagonAlert, ClipboardList, UserX, UserCheck, Users, Sparkles } from 'lucide-react'
@@ -15,21 +17,49 @@ const getEstadisticasGlobales = unstable_cache(
       { count: casosCriticos },
       { count: casosActivos },
       { count: casosEstables },
+      { count: casosCerrados },
       { count: necesidadesPendientes },
+      { count: necesidadesEntregadas },
+      { count: necesidadesTotal },
       { count: casosSinTutor },
+      { count: totalFamilias },
+      { count: totalPersonas },
       { count: voluntariosActivos },
       { data: voluntariosMiPerfil },
+      { data: topCategoriasData },
     ] = await Promise.all([
       admin.from('casos').select('*', { count: 'exact', head: true }),
       admin.from('casos').select('*', { count: 'exact', head: true }).eq('estado', 'critico'),
       admin.from('casos').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
       admin.from('casos').select('*', { count: 'exact', head: true }).eq('estado', 'estable'),
+      admin.from('casos').select('*', { count: 'exact', head: true }).eq('estado', 'cerrado'),
       admin.from('necesidades').select('*', { count: 'exact', head: true }).eq('estado', 'pendiente'),
+      admin.from('necesidades').select('*', { count: 'exact', head: true }).eq('estado', 'entregado'),
+      admin.from('necesidades').select('*', { count: 'exact', head: true }),
       admin.from('casos').select('*', { count: 'exact', head: true }).is('tutor_id', null).neq('estado', 'cerrado'),
+      admin.from('casos').select('*', { count: 'exact', head: true }).eq('tipo', 'familiar'),
+      admin.from('personas').select('*', { count: 'exact', head: true }),
       admin.from('voluntarios').select('*', { count: 'exact', head: true }).eq('estado', 'aprobado'),
       admin.from('voluntarios').select('areas_ayuda').eq('estado', 'aprobado'),
+      admin.from('necesidades').select('categoria').in('estado', ['pendiente', 'en_gestion']),
     ])
-    return { totalCasos, casosCriticos, casosActivos, casosEstables, necesidadesPendientes, casosSinTutor, voluntariosActivos, voluntariosMiPerfil }
+
+    // Agrupar categorías en memoria (PostgREST no soporta GROUP BY nativo)
+    const catCount: Record<string, number> = {}
+    ;(topCategoriasData ?? []).forEach((n: any) => {
+      if (n.categoria) catCount[n.categoria] = (catCount[n.categoria] ?? 0) + 1
+    })
+    const topCategorias = Object.entries(catCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([categoria, count]) => ({ categoria, count }))
+
+    return {
+      totalCasos, casosCriticos, casosActivos, casosEstables, casosCerrados,
+      necesidadesPendientes, necesidadesEntregadas, necesidadesTotal,
+      casosSinTutor, totalFamilias, totalPersonas,
+      voluntariosActivos, voluntariosMiPerfil, topCategorias,
+    }
   },
   ['dashboard-stats'],
   { revalidate: 60, tags: ['dashboard-stats'] }
@@ -99,8 +129,12 @@ export default async function DashboardPage() {
     }
   }
 
-  const { totalCasos, casosCriticos, casosActivos, casosEstables,
-          necesidadesPendientes, casosSinTutor, voluntariosActivos, voluntariosMiPerfil } = stats
+  const {
+    totalCasos, casosCriticos, casosActivos, casosEstables, casosCerrados,
+    necesidadesPendientes, necesidadesEntregadas, necesidadesTotal,
+    casosSinTutor, totalFamilias, totalPersonas,
+    voluntariosActivos, voluntariosMiPerfil, topCategorias,
+  } = stats
 
   // Resumir capacidades del equipo
   const areaCount: Record<string, number> = {}
@@ -110,13 +144,26 @@ export default async function DashboardPage() {
     })
   })
   const topAreas = Object.entries(areaCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
-  const casosCerrados = Math.max(0, (totalCasos ?? 0) - (casosCriticos ?? 0) - (casosActivos ?? 0) - (casosEstables ?? 0))
 
   return (
     <div className="space-y-6 max-w-5xl">
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Resumen del operativo</h2>
         <p className="text-gray-500 text-sm mt-1">Estado en tiempo real · Coro Presente</p>
+      </div>
+
+      <EstadisticasAmpliadas
+        totalCasos={totalCasos ?? 0}
+        totalFamilias={totalFamilias ?? 0}
+        totalPersonas={totalPersonas ?? 0}
+        casosCerrados={casosCerrados ?? 0}
+        necesidadesEntregadas={necesidadesEntregadas ?? 0}
+        necesidadesTotal={necesidadesTotal ?? 0}
+        topCategorias={topCategorias}
+      />
+
+      <div>
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Estado operativo</h3>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -135,7 +182,7 @@ export default async function DashboardPage() {
               { label: 'Crítico', count: casosCriticos ?? 0, color: 'bg-red-500' },
               { label: 'Activo', count: casosActivos ?? 0, color: 'bg-green-500' },
               { label: 'Estable', count: casosEstables ?? 0, color: 'bg-cyan-400' },
-              { label: 'Cerrado', count: casosCerrados, color: 'bg-gray-300' },
+              { label: 'Cerrado', count: casosCerrados ?? 0, color: 'bg-gray-300' },
             ].map(({ label, count, color }) => (
               <div key={label} className="flex items-center gap-3">
                 <span className="text-xs text-gray-500 w-14 shrink-0">{label}</span>
@@ -266,6 +313,8 @@ export default async function DashboardPage() {
           </div>
         )}
       </div>
+
+      <FiltroGrupo />
 
       <div className="bg-cyan-50 border border-cyan-200 rounded-xl p-4 text-sm text-[var(--color-foreground)]">
         <strong>Coro Presente</strong> — Sistema humanitario para familias afectadas por el terremoto en Coro, Estado Falcón.
