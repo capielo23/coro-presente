@@ -101,8 +101,8 @@ export default function RegistroPage() {
     if (!form.password || form.password.length < 8)
       e.password = 'La contraseña debe tener al menos 8 caracteres para ser segura.'
 
-    if (!form.cedula.trim() || !/^[VEJPG]-/.test(form.cedula) || digitosCed.length < 5)
-      e.cedula = 'Selecciona el tipo de documento (V, E, J…) y escribe el número completo.'
+    if (form.cedula.trim() && (!/^[VEJPG]-/.test(form.cedula) || digitosCed.length < 5))
+      e.cedula = 'Si vas a ingresar una cédula, selecciona el tipo (V, E, J…) y escribe el número completo.'
 
     if (digitosTel.length < 10)
       e.telefono = 'Ingresa un teléfono venezolano válido, por ejemplo: (0412) 456-7899.'
