@@ -31,7 +31,7 @@ export default function DashboardShell({ children, voluntario, pendientesCount =
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <Sidebar
-          esAdmin={voluntario.rol === 'admin'}
+          esAdmin={voluntario.rol === 'admin' || voluntario.rol === 'coordinador'}
           nombreVoluntario={voluntario.nombre_completo}
           onClose={() => setSidebarOpen(false)}
           pendientesCount={pendientesCount}
@@ -65,9 +65,11 @@ export default function DashboardShell({ children, voluntario, pendientesCount =
             <span className={`shrink-0 text-xs px-2.5 py-1 rounded-full font-semibold ${
               voluntario.rol === 'admin'
                 ? 'bg-amber-100 text-amber-800'
+                : voluntario.rol === 'coordinador'
+                ? 'bg-indigo-100 text-indigo-700'
                 : 'bg-cyan-100 text-cyan-700'
             }`}>
-              {voluntario.rol === 'admin' ? 'Admin' : 'Voluntario'}
+              {voluntario.rol === 'admin' ? 'Admin' : voluntario.rol === 'coordinador' ? 'Coordinador' : 'Voluntario'}
             </span>
           </div>
         </div>
