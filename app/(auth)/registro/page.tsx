@@ -256,7 +256,7 @@ export default function RegistroPage() {
         {/* Cédula */}
         <div id="campo-cedula">
           <label className="block text-sm font-medium text-gray-700 mb-1">
-            Cédula de identidad <span className="text-red-500">*</span>
+            Cédula de identidad <span className="text-gray-400 font-normal">(opcional)</span>
           </label>
           <div className={errores.cedula ? 'ring-2 ring-red-400 rounded-lg' : ''}>
             <CedulaInput
