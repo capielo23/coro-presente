@@ -1,12 +1,18 @@
+import Logo, { Wordmark } from '@/components/ui/Logo'
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-blue-700 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: 'linear-gradient(135deg, #0C4A6E 0%, #0891B2 60%, #164E63 100%)' }}>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">CoroAyuda</h1>
-          <p className="text-blue-200 mt-1 text-sm">Coro presente. Falcón solidario.</p>
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-[#FAF6EE] mb-4 shadow-lg">
+            <Logo size={42} />
+          </div>
+          <Wordmark className="block text-3xl" coroColor="#FACC15" presenteColor="#60A5FA" />
+          <p className="text-[#FB7185] mt-2 text-xs font-extrabold uppercase tracking-[0.22em]">Juntos nos levantamos</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-white/20">
           {children}
         </div>
       </div>

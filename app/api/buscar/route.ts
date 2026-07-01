@@ -37,21 +37,9 @@ export async function GET(request: NextRequest) {
 
   const supabase = createAdminClient()
 
-  // Búsqueda por nombre, apellido o cédula parcial
+  // Búsqueda sin distinción de acentos, mayúsculas o tildes via función PostgreSQL
   const { data: personas, error } = await supabase
-    .from('personas')
-    .select(`
-      nombre,
-      apellido,
-      caso:casos!inner(
-        id,
-        estado,
-        ciudad_origen,
-        tutor:voluntarios!casos_tutor_id_fkey(nombre_completo)
-      )
-    `)
-    .or(`nombre.ilike.%${q}%,apellido.ilike.%${q}%,cedula.ilike.%${q}%`)
-    .limit(20)
+    .rpc('buscar_personas_publico', { termino: q })
 
   if (error) {
     return NextResponse.json({ error: 'Error al buscar' }, { status: 500 })
@@ -65,9 +53,9 @@ export async function GET(request: NextRequest) {
   const resultados = personas.map((p: any) => ({
     nombre: p.nombre,
     apellido: p.apellido,
-    estadoCaso: p.caso.estado,
+    estadoCaso: p.estado_caso,
     ciudadAtencion: 'Coro, Estado Falcón',
-    tutorContacto: p.caso.tutor?.nombre_completo || 'Coordinación CoroAyuda',
+    tutorContacto: p.tutor_nombre || 'Coordinación Coro Presente',
   }))
 
   return NextResponse.json({ resultados })

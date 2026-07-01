@@ -1,16 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
-import { ESTADO_CASO_COLORS, ESTADO_CASO_LABELS, CATEGORIA_LABELS, ESTADO_NECESIDAD_COLORS } from '@/lib/utils'
+import { ESTADO_CASO_COLORS, ESTADO_CASO_LABELS, CATEGORIA_LABELS } from '@/lib/utils'
 import AgregarNecesidad from '@/components/casos/AgregarNecesidad'
+import NecesidadGestion from '@/components/casos/NecesidadGestion'
+import CampoEditable from '@/components/casos/CampoEditable'
+import TutorActions from '@/components/casos/TutorActions'
 import AsignarTutor from '@/components/casos/AsignarTutor'
+import AgregarSeguimiento from '@/components/casos/AgregarSeguimiento'
+import BitacoraSeguimiento from '@/components/casos/BitacoraSeguimiento'
+import EquipoCaso from '@/components/casos/EquipoCaso'
+import EliminarCaso from '@/components/casos/EliminarCaso'
+import IntegranteCard from '@/components/casos/IntegranteCard'
 import Link from 'next/link'
+import { ArrowLeft, ClipboardList } from 'lucide-react'
 
 export default async function FichaCasoPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [{ data: caso }, { data: voluntarios }, { data: miPerfil }] = await Promise.all([
-    supabase.from('casos').select(`
+  const admin = createAdminClient()
+  const [{ data: caso }, { data: miPerfil }, { data: colaboracion }, { data: seguimientos }, { data: todosVoluntarios }, { data: colaboradoresLista }, { data: entregasCaso }] = await Promise.all([
+    admin.from('casos').select(`
       *,
       personas(*),
       necesidades(*),
@@ -18,15 +29,114 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
       registrador:voluntarios!casos_registrado_por_fkey(nombre_completo),
       historial_caso(*, voluntario:voluntarios(nombre_completo))
     `).eq('id', params.id).single(),
-    supabase.from('voluntarios').select('id, nombre_completo').eq('estado', 'aprobado').order('nombre_completo'),
-    supabase.from('voluntarios').select('rol').eq('id', user!.id).single(),
+    admin.from('voluntarios')
+      .select('rol, areas_ayuda, especialidades, zona_cobertura, disponibilidad, descripcion_ayuda')
+      .eq('id', user!.id).single(),
+    admin.from('caso_colaboradores')
+      .select('id').eq('caso_id', params.id).eq('voluntario_id', user!.id).maybeSingle(),
+    // Bitácora aparte: si la migración 003 aún no se corrió, esto falla sin tumbar la página
+    admin.from('seguimientos')
+      .select('*, voluntario:voluntarios(nombre_completo)')
+      .eq('caso_id', params.id)
+      .order('created_at', { ascending: false }),
+    // Voluntarios aprobados para AsignarTutor (solo coordinadores los necesitan)
+    admin.from('voluntarios')
+      .select('id, nombre_completo, areas_ayuda, especialidades')
+      .eq('estado', 'aprobado')
+      .order('nombre_completo'),
+    // Equipo: colaboradores del caso (con nombre)
+    admin.from('caso_colaboradores')
+      .select('voluntario:voluntarios(id, nombre_completo)')
+      .eq('caso_id', params.id),
+    // Ledger de entregas del caso (con nombre de quien registró)
+    admin.from('entregas')
+      .select('*, marcador:voluntarios!entregas_marcado_por_fkey(nombre_completo)')
+      .eq('caso_id', params.id)
+      .order('fecha', { ascending: false }),
   ])
 
   if (!caso) notFound()
 
-  const esAdmin = miPerfil?.rol === 'admin'
+  // Generar URLs firmadas (1h) para fotos de personas
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? 'fotos-personas'
+  const personasConFoto = await Promise.all(
+    (caso.personas ?? []).map(async (p: any) => {
+      if (!p.foto_url) return { ...p, foto_signed_url: null }
+      const { data } = await admin.storage.from(bucket).createSignedUrl(p.foto_url, 3600)
+      return { ...p, foto_signed_url: data?.signedUrl ?? null }
+    })
+  )
+
+  const esAdmin = ['admin', 'coordinador'].includes(miPerfil?.rol ?? '')
   const esTutor = caso.tutor_id === user!.id
-  const puedeEditar = esAdmin || esTutor || caso.registrado_por === user!.id
+  const esColaborador = !!colaboracion
+  const puedeEditar = esAdmin || esTutor || caso.registrado_por === user!.id || esColaborador
+
+  // Datos de coincidencia para el modal de compromiso (al tomar el seguimiento)
+  const necesidadesAbiertas: any[] = (caso.necesidades ?? []).filter((n: any) => n.estado !== 'entregado')
+  const misAreas: string[] = miPerfil?.areas_ayuda ?? []
+  const misEspecialidades: string[] = miPerfil?.especialidades ?? []
+  const categoriasMatch = Array.from(
+    new Set(necesidadesAbiertas.map((n: any) => n.categoria as string))
+  ).filter((c) => misAreas.includes(c))
+  const habilidadesCaso: string[] = (caso.habilidades_requeridas?.length
+    ? caso.habilidades_requeridas
+    : Array.from(new Set(necesidadesAbiertas.map((n: any) => n.especialidad_requerida).filter(Boolean)))) as string[]
+  const especialidadesMatch = habilidadesCaso.filter((h) => misEspecialidades.includes(h))
+  const zonaVol = (miPerfil?.zona_cobertura ?? '').trim().toLowerCase()
+  const sectorCaso = (caso.sector_coro ?? '').trim().toLowerCase()
+  const zonaCoincide = !!zonaVol && !!sectorCaso && (sectorCaso.includes(zonaVol) || zonaVol.includes(sectorCaso))
+  const camposPerfil = [
+    misEspecialidades.length > 0,
+    !!miPerfil?.zona_cobertura,
+    !!miPerfil?.disponibilidad,
+    !!miPerfil?.descripcion_ayuda,
+  ]
+  const perfilIncompleto = camposPerfil.filter(Boolean).length < camposPerfil.length
+
+  const matchInfo = {
+    categoriasMatch: categoriasMatch.map((c) => CATEGORIA_LABELS[c] ?? c),
+    especialidadesMatch,
+    zonaCoincide,
+    sectorCaso: caso.sector_coro ?? null,
+    zonaVol: miPerfil?.zona_cobertura ?? null,
+    perfilIncompleto,
+  }
+
+  // Equipo del caso para el selector "¿Quién entregó?": SOLO personas asignadas al caso
+  // (responsable/coordinador + quien lo registró + colaboradores), no todo el equipo aprobado.
+  const equipoCaso: { id: string; nombre_completo: string }[] = []
+  const addMiembroCaso = (mid?: string | null, nombre?: string | null) => {
+    if (mid && nombre && !equipoCaso.some(m => m.id === mid)) equipoCaso.push({ id: mid, nombre_completo: nombre })
+  }
+  addMiembroCaso(caso.tutor_id, (caso.tutor as any)?.nombre_completo)
+  addMiembroCaso(caso.registrado_por, (caso.registrador as any)?.nombre_completo)
+  ;(colaboradoresLista ?? []).forEach((c: any) => addMiembroCaso(c.voluntario?.id, c.voluntario?.nombre_completo))
+
+  const colaboradoresNombres: string[] = (colaboradoresLista ?? [])
+    .map((c: any) => c.voluntario?.nombre_completo).filter(Boolean)
+  const entregasPorNec: Record<string, any[]> = {}
+  ;(entregasCaso ?? []).forEach((e: any) => { (entregasPorNec[e.necesidad_id] ??= []).push(e) })
+  const entregadores: string[] = Array.from(
+    new Set((entregasCaso ?? []).map((e: any) => e.entregado_por_nombre as string).filter(Boolean))
+  )
+  const responsableNombre = (caso.tutor as any)?.nombre_completo ?? null
+  const registradorNombre = (caso.registrador as any)?.nombre_completo ?? null
+
+  // Artículos asignados a cada integrante (para gestión por persona en su tarjeta)
+  const itemsPorPersona: Record<string, { necesidadId: string; categoria: string; item: any }[]> = {}
+  ;(caso.necesidades ?? []).forEach((nec: any) => {
+    ;(nec.items_entrega?.items ?? []).forEach((item: any) => {
+      if (item?.persona_id) {
+        (itemsPorPersona[item.persona_id] ??= []).push({ necesidadId: nec.id, categoria: nec.categoria, item })
+      }
+    })
+  })
+
+  const TIPO_ALOJAMIENTO_LABEL: Record<string, string> = {
+    casa_familiar: 'Casa familiar', albergue: 'Albergue oficial',
+    iglesia: 'Iglesia / comunitario', hotel: 'Hotel / posada', otro: 'Otro',
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-5">
@@ -44,36 +154,83 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
               {caso.tipo} · {caso.num_integrantes} integrante(s) · Registrado por {(caso.registrador as any)?.nombre_completo}
             </p>
           </div>
-          <Link href="/casos" className="text-sm text-gray-400 hover:text-blue-600">← Volver</Link>
+          <Link href="/casos" className="text-sm text-gray-400 hover:text-cyan-600 flex items-center gap-1 transition">
+            <ArrowLeft className="w-4 h-4" /> Volver
+          </Link>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-4">
+        {/* Grid de ubicación — editable inline */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm mb-3">
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-400 text-xs">Origen</p>
-            <p className="font-medium">{caso.ciudad_origen || '—'}, {caso.estado_origen || '—'}</p>
+            <p className="font-medium">{caso.ciudad_origen || '—'}, {caso.estado_origen || 'Falcón'}</p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-gray-400 text-xs">Zona afectada</p>
-            <p className="font-medium">{caso.zona_afectada || '—'}</p>
-          </div>
+          <CampoEditable
+            casoId={caso.id}
+            campo="zona_afectada"
+            valor={caso.zona_afectada}
+            etiqueta="Zona afectada"
+            placeholder="Barrio o sector de origen"
+            puedeEditar={puedeEditar}
+          />
           <div className="bg-gray-50 rounded-lg p-3">
             <p className="text-gray-400 text-xs">Alojamiento</p>
-            <p className="font-medium capitalize">{caso.tipo_alojamiento?.replace('_', ' ') || '—'}</p>
+            <p className="font-medium">{TIPO_ALOJAMIENTO_LABEL[caso.tipo_alojamiento] || caso.tipo_alojamiento || '—'}</p>
           </div>
-          <div className="bg-gray-50 rounded-lg p-3">
-            <p className="text-gray-400 text-xs">Dirección</p>
-            <p className="font-medium text-xs">{caso.direccion_actual || '—'}</p>
-          </div>
+          <CampoEditable
+            casoId={caso.id}
+            campo="sector_coro"
+            valor={caso.sector_coro}
+            etiqueta="Sector en Coro"
+            placeholder="San José, Los Claritos..."
+            puedeEditar={puedeEditar}
+          />
+        </div>
+        <CampoEditable
+          casoId={caso.id}
+          campo="direccion_actual"
+          valor={caso.direccion_actual}
+          etiqueta="Dirección actual"
+          placeholder="Calle, número de casa, referencia..."
+          puedeEditar={puedeEditar}
+        />
+
+        <div className="mt-4 space-y-3">
+          <TutorActions
+            casoId={caso.id}
+            tutorId={caso.tutor_id}
+            tutorNombre={(caso.tutor as any)?.nombre_completo ?? null}
+            userId={user!.id}
+            esColaborador={esColaborador}
+            match={matchInfo}
+          />
+          {esAdmin && (
+            <AsignarTutor
+              casoId={caso.id}
+              tutorActual={caso.tutor as any}
+              voluntarios={todosVoluntarios ?? []}
+              puedeEditar={esAdmin}
+              estadoActual={caso.estado}
+              areasNecesidades={Array.from(new Set((caso.necesidades ?? []).map((n: any) => n.categoria as string)))}
+              especialidadesRequeridas={habilidadesCaso}
+            />
+          )}
         </div>
 
-        <AsignarTutor
-          casoId={caso.id}
-          tutorActual={caso.tutor as any}
-          voluntarios={voluntarios || []}
-          puedeEditar={puedeEditar}
-          estadoActual={caso.estado}
-        />
+        {puedeEditar && (
+          <div className="mt-4 pt-3 border-t border-gray-100 flex justify-end">
+            <EliminarCaso casoId={caso.id} nombreCaso={caso.nombre_caso} />
+          </div>
+        )}
       </div>
+
+      {/* Equipo del caso */}
+      <EquipoCaso
+        responsable={responsableNombre}
+        registrador={registradorNombre}
+        colaboradores={colaboradoresNombres}
+        entregadores={entregadores}
+      />
 
       {/* Integrantes */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -81,42 +238,39 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
           Integrantes ({caso.personas?.length ?? 0})
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {caso.personas?.map((persona: any) => (
-            <div key={persona.id} className="border border-gray-200 rounded-lg p-3 text-sm">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">{persona.nombre} {persona.apellido}</p>
-                  <p className="text-gray-500 text-xs mt-0.5">
-                    {persona.cedula && `CI: ${persona.cedula} · `}
-                    {persona.edad_aprox && `${persona.edad_aprox} años · `}
-                    {persona.rol_familia && <span className="capitalize">{persona.rol_familia}</span>}
-                  </p>
-                  {persona.condicion_especial && (
-                    <p className="text-orange-600 text-xs mt-1">⚠️ {persona.condicion_especial}</p>
-                  )}
-                </div>
-                <span className="text-xs text-gray-400">
-                  {persona.sexo === 'M' ? '♂' : persona.sexo === 'F' ? '♀' : ''}
-                </span>
-              </div>
-            </div>
+          {personasConFoto.map((persona: any) => (
+            <IntegranteCard
+              key={persona.id}
+              persona={persona}
+              itemsPersona={itemsPorPersona[persona.id] ?? []}
+              equipo={equipoCaso}
+              puedeEditar={puedeEditar}
+            />
           ))}
         </div>
       </div>
 
       {/* Necesidades */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="font-semibold text-gray-800">
             Necesidades ({caso.necesidades?.length ?? 0})
           </h3>
-          <AgregarNecesidad casoId={caso.id} />
+          <AgregarNecesidad casoId={caso.id} personas={caso.personas ?? []} />
         </div>
 
         {caso.necesidades && caso.necesidades.length > 0 ? (
           <div className="space-y-2">
             {caso.necesidades.map((nec: any) => (
-              <NecesidadRow key={nec.id} nec={nec} />
+              <NecesidadGestion
+                key={nec.id}
+                nec={nec}
+                puedeEditar={puedeEditar}
+                equipo={equipoCaso}
+                entregas={entregasPorNec[nec.id] ?? []}
+                casoCreatedAt={caso.created_at}
+                personas={caso.personas ?? []}
+              />
             ))}
           </div>
         ) : (
@@ -124,6 +278,18 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
             No hay necesidades registradas. Agrega la primera.
           </p>
         )}
+      </div>
+
+      {/* Bitácora de seguimiento */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-cyan-500" />
+            Bitácora de seguimiento ({seguimientos?.length ?? 0})
+          </h3>
+          <AgregarSeguimiento casoId={caso.id} />
+        </div>
+        <BitacoraSeguimiento seguimientos={seguimientos ?? []} />
       </div>
 
       {/* Historial */}
@@ -146,26 +312,6 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function NecesidadRow({ nec }: { nec: any }) {
-  return (
-    <div className="flex items-start justify-between border border-gray-200 rounded-lg p-3 text-sm hover:bg-gray-50 transition">
-      <div className="flex-1">
-        <p className="font-medium text-gray-800">{CATEGORIA_LABELS[nec.categoria] || nec.categoria}</p>
-        {nec.descripcion && <p className="text-gray-500 text-xs mt-0.5">{nec.descripcion}</p>}
-        {nec.es_recurrente && (
-          <p className="text-purple-600 text-xs mt-0.5">🔄 Recurrente · {nec.frecuencia}</p>
-        )}
-        {nec.estado === 'entregado' && nec.descripcion_entrega && (
-          <p className="text-green-600 text-xs mt-1">✅ {nec.descripcion_entrega}</p>
-        )}
-      </div>
-      <span className={`ml-3 px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${ESTADO_NECESIDAD_COLORS[nec.estado]}`}>
-        {nec.estado.replace('_', ' ')}
-      </span>
     </div>
   )
 }

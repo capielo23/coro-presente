@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
 const personaSchema = z.object({
@@ -11,6 +12,7 @@ const personaSchema = z.object({
   rol_familia: z.string().optional(),
   condicion_especial: z.string().optional(),
   telefono: z.string().optional(),
+  foto_url: z.string().optional(),
 })
 
 const casoSchema = z.object({
@@ -21,6 +23,8 @@ const casoSchema = z.object({
   zona_afectada: z.string().optional(),
   direccion_actual: z.string().optional(),
   tipo_alojamiento: z.string().optional(),
+  sector_coro: z.string().optional(),
+  ser_tutor: z.boolean().optional(),
   personas: z.array(personaSchema).min(1, 'Al menos un integrante requerido'),
 })
 
@@ -35,12 +39,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
   }
 
-  const { personas, ...datosCaso } = parsed.data
+  const { personas, ser_tutor, ...datosCaso } = parsed.data
+  const admin = createAdminClient()
 
   // Verificar duplicados por cédula
   const cedulas = personas.map(p => p.cedula).filter(Boolean) as string[]
   if (cedulas.length > 0) {
-    const { data: duplicados } = await supabase
+    const { data: duplicados } = await admin
       .from('personas')
       .select('nombre, apellido, cedula, caso_id')
       .in('cedula', cedulas)
@@ -54,13 +59,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Crear el caso
-  const { data: caso, error: casoError } = await supabase
+  // Crear el caso — si el voluntario elige ser tutor, se asigna tutor_id al crear
+  const { data: caso, error: casoError } = await admin
     .from('casos')
     .insert({
       ...datosCaso,
       num_integrantes: personas.length,
       registrado_por: user.id,
+      ...(ser_tutor ? { tutor_id: user.id } : {}),
     })
     .select()
     .single()
@@ -68,18 +74,23 @@ export async function POST(request: NextRequest) {
   if (casoError) return NextResponse.json({ error: 'Error al crear caso: ' + casoError.message }, { status: 500 })
 
   // Insertar personas
-  const { error: personasError } = await supabase.from('personas').insert(
+  const { error: personasError } = await admin.from('personas').insert(
     personas.map(p => ({ ...p, caso_id: caso.id }))
   )
 
   if (personasError) return NextResponse.json({ error: 'Error al registrar integrantes' }, { status: 500 })
 
   // Log en historial
-  await supabase.from('historial_caso').insert({
+  await admin.from('historial_caso').insert({
     caso_id: caso.id,
     voluntario_id: user.id,
     accion: 'caso_creado',
-    detalle: { nombre_caso: caso.nombre_caso, tipo: caso.tipo, num_integrantes: personas.length },
+    detalle: {
+      nombre_caso: caso.nombre_caso,
+      tipo: caso.tipo,
+      num_integrantes: personas.length,
+      con_tutor: ser_tutor ?? false,
+    },
   })
 
   return NextResponse.json({ id: caso.id }, { status: 201 })

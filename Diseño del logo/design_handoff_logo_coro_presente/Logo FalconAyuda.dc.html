@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+</style>
+</helmet>
+
+<div style="min-height:100vh; background: {{ bgColor }}; font-family:'Plus Jakarta Sans',sans-serif; padding:48px 36px 64px;">
+  <div style="max-width:1280px; margin:0 auto;">
+
+    <!-- ============ TURN 3 · LOGO FINAL: CORO PRESENTE ============ -->
+    <section id="3a" style="margin-bottom:48px; padding-bottom:44px; border-bottom:1px dashed rgba(140,140,120,0.30);">
+      <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:22px;">
+        <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.1em; color:#0B47A1; background:rgba(11,71,161,0.08); padding:4px 11px; border-radius:999px; border:1px solid rgba(11,71,161,0.18);">3 · LOGO FINAL</span>
+        <h2 style="margin:0; font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:22px; letter-spacing:-0.015em; color: {{ headInk }};">Coro Presente — sistema de marca</h2>
+        <span style="font-size:12.5px; color: {{ headMut }};">todas las versiones listas para usar</span>
+      </div>
+
+      <!-- HERO -->
+      <div style="background:#fff; border:1px solid #ECE6DA; border-radius:20px; padding:52px; display:flex; align-items:center; justify-content:center; gap:36px; box-shadow:0 18px 44px -30px rgba(20,34,58,0.45); margin-bottom:22px;">
+        <svg viewBox="0 0 100 100" width="120" height="120" aria-hidden="true">
+          <path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/>
+          <circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/>
+          <circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/>
+        </svg>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:54px; line-height:0.98; letter-spacing:-0.025em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:#8A8475; margin-top:13px;">Juntos nos levantamos</div>
+        </div>
+      </div>
+
+      <!-- ROW: símbolo solo · apilado · favicons -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:22px; margin-bottom:22px;">
+
+        <!-- símbolo solo -->
+        <div style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#9A9486;">Símbolo solo</div>
+          <div style="flex:1; min-height:120px; display:flex; align-items:center; justify-content:center;">
+            <svg viewBox="0 0 100 100" width="84" height="84" role="img" aria-label="Coro Presente"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/></svg>
+          </div>
+        </div>
+
+        <!-- apilado -->
+        <div style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#9A9486;">Apilado</div>
+          <div style="flex:1; min-height:120px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+            <svg viewBox="0 0 100 100" width="56" height="56" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/></svg>
+            <div style="display:flex; flex-direction:column; align-items:center;"><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:24px; line-height:1; letter-spacing:-0.02em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:8px; letter-spacing:0.2em; text-transform:uppercase; color:#8A8475; margin-top:7px;">Juntos nos levantamos</div></div>
+          </div>
+        </div>
+
+        <!-- favicons -->
+        <div style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+          <div style="font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; color:#9A9486;">App · favicon</div>
+          <div style="flex:1; min-height:120px; display:flex; align-items:center; justify-content:center; gap:18px;">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+              <div style="width:64px; height:64px; border-radius:15px; background:#0E1B33; display:flex; align-items:center; justify-content:center;"><svg viewBox="0 0 100 100" width="44" height="44" role="img" aria-label="Coro Presente"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#3F6FC4"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="64" cy="58" r="7" fill="#3F6FC4"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="50" cy="63" r="6" fill="#E8554A"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#E8554A"/></svg></div>
+              <span style="font-size:9px; color:#9A9486;">64 px</span>
+            </div>
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
+              <div style="width:32px; height:32px; border-radius:8px; background:#0E1B33; display:flex; align-items:center; justify-content:center;"><svg viewBox="0 0 100 100" width="22" height="22" role="img" aria-label="Coro Presente"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="8" fill="#3F6FC4"/><rect x="28" y="66" width="16" height="20" rx="8" fill="#3F6FC4"/><circle cx="64" cy="58" r="8" fill="#3F6FC4"/><rect x="56" y="66" width="16" height="20" rx="8" fill="#3F6FC4"/><circle cx="50" cy="62" r="7" fill="#E8554A"/><rect x="43" y="69" width="14" height="17" rx="7" fill="#E8554A"/></svg></div>
+              <span style="font-size:9px; color:#9A9486;">32 px</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW: header claro · header oscuro -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:22px;">
+        <div style="border:1px solid #E4DED2; border-radius:14px; overflow:hidden; background:#fff;">
+          <div style="background:#F1ECE2; padding:9px 14px; display:flex; gap:6px; align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:#D9D2C4;"></span><span style="width:9px;height:9px;border-radius:50%;background:#D9D2C4;"></span><span style="width:9px;height:9px;border-radius:50%;background:#D9D2C4;"></span><span style="margin-left:8px; font-size:10px; color:#A39C8C; font-family:'Space Grotesk',monospace;">coropresente.org</span></div>
+          <div style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:9px;"><svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/></svg><span style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:17px; letter-spacing:-0.02em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></span></div>
+            <div style="display:flex; align-items:center; gap:16px;"><span style="font-size:11.5px; font-weight:600; color:#5A6275;">Buscar persona</span><span style="font-size:11.5px; font-weight:600; color:#5A6275;">Voluntarios</span><span style="font-size:11.5px; font-weight:700; color:#16223A; background:#F4C033; padding:7px 13px; border-radius:8px;">Registrar</span></div>
+          </div>
+        </div>
+
+        <div style="border:1px solid #1B2742; border-radius:14px; overflow:hidden; background:#0E1B33;">
+          <div style="background:#0A1426; padding:9px 14px; display:flex; gap:6px; align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:#2A3654;"></span><span style="width:9px;height:9px;border-radius:50%;background:#2A3654;"></span><span style="width:9px;height:9px;border-radius:50%;background:#2A3654;"></span><span style="margin-left:8px; font-size:10px; color:#5C6A8A; font-family:'Space Grotesk',monospace;">coropresente.org</span></div>
+          <div style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:9px;"><svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#3F6FC4"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="64" cy="58" r="7" fill="#3F6FC4"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="50" cy="63" r="6" fill="#E8554A"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#E8554A"/></svg><span style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:17px; letter-spacing:-0.02em; color:#fff;">Coro <span style="color:#F0907F;">Presente</span></span></div>
+            <div style="display:flex; align-items:center; gap:16px;"><span style="font-size:11.5px; font-weight:600; color:#9AA7C2;">Buscar persona</span><span style="font-size:11.5px; font-weight:600; color:#9AA7C2;">Voluntarios</span><span style="font-size:11.5px; font-weight:700; color:#16223A; background:#F4C033; padding:7px 13px; border-radius:8px;">Registrar</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TURN 2 · REFINAMIENTO: CORO PRESENTE ============ -->
+    <section id="2a" style="margin-bottom:48px; padding-bottom:44px; border-bottom:1px dashed rgba(140,140,120,0.30);">
+      <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:22px;">
+        <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.1em; color:#D23A2E; background:rgba(210,58,46,0.08); padding:4px 11px; border-radius:999px; border:1px solid rgba(210,58,46,0.18);">2 · REFINAMIENTO</span>
+        <h2 style="margin:0; font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:22px; letter-spacing:-0.015em; color: {{ headInk }};">Coro Presente</h2>
+        <span style="font-size:12.5px; color: {{ headMut }};">basado en 1c · familia bajo techo</span>
+      </div>
+
+      <!-- HERO LOCKUP -->
+      <div style="background:#fff; border:1px solid #ECE6DA; border-radius:20px; padding:44px; display:flex; align-items:center; justify-content:center; gap:34px; box-shadow:0 18px 44px -30px rgba(20,34,58,0.45); margin-bottom:22px;">
+        <svg viewBox="0 0 100 100" width="116" height="116" aria-hidden="true">
+          <path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/>
+          <circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/>
+          <circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/>
+        </svg>
+        <div style="display:flex; flex-direction:column;">
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:52px; line-height:0.98; letter-spacing:-0.025em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></div>
+          <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:12px; letter-spacing:0.22em; text-transform:uppercase; color:#8A8475; margin-top:12px;">Juntos nos levantamos</div>
+        </div>
+      </div>
+
+      <!-- 3 TRATAMIENTOS -->
+      <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:22px; margin-bottom:22px;">
+
+        <!-- 2a horizontal -->
+        <div id="2a-card" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:14px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+          <div style="display:flex; align-items:baseline; gap:9px;"><span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">2a</span><span style="font-size:12.5px; font-weight:700; color:#16223A;">Horizontal</span></div>
+          <div style="flex:1; min-height:104px; display:flex; align-items:center; justify-content:center; gap:14px;">
+            <svg viewBox="0 0 100 100" width="58" height="58" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/></svg>
+            <div style="display:flex; flex-direction:column;"><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:24px; line-height:1; letter-spacing:-0.02em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:8px; letter-spacing:0.18em; text-transform:uppercase; color:#8A8475; margin-top:6px;">Juntos nos levantamos</div></div>
+          </div>
+        </div>
+
+        <!-- 2b apilado -->
+        <div id="2b" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:14px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+          <div style="display:flex; align-items:baseline; gap:9px;"><span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">2b</span><span style="font-size:12.5px; font-weight:700; color:#16223A;">Apilado</span></div>
+          <div style="flex:1; min-height:104px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px;">
+            <svg viewBox="0 0 100 100" width="56" height="56" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/></svg>
+            <div style="display:flex; flex-direction:column; align-items:center;"><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:23px; line-height:1; letter-spacing:-0.02em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:8px; letter-spacing:0.2em; text-transform:uppercase; color:#8A8475; margin-top:7px;">Juntos nos levantamos</div></div>
+          </div>
+        </div>
+
+        <!-- 2c techo sólido -->
+        <div id="2c" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:14px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+          <div style="display:flex; align-items:baseline; gap:9px;"><span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">2c</span><span style="font-size:12.5px; font-weight:700; color:#16223A;">Techo sólido</span></div>
+          <div style="flex:1; min-height:104px; display:flex; align-items:center; justify-content:center; gap:14px;">
+            <svg viewBox="0 0 100 100" width="58" height="58" aria-hidden="true"><polygon points="50,16 88,48 12,48" fill="#F4C033"/><rect x="12" y="85" width="76" height="6" rx="3" fill="#0B47A1"/><circle cx="36" cy="60" r="7" fill="#0B47A1"/><rect x="29" y="67" width="14" height="18" rx="7" fill="#0B47A1"/><circle cx="64" cy="60" r="7" fill="#0B47A1"/><rect x="57" y="67" width="14" height="18" rx="7" fill="#0B47A1"/><circle cx="50" cy="64" r="6" fill="#D23A2E"/><rect x="44" y="71" width="12" height="14" rx="6" fill="#D23A2E"/></svg>
+            <div style="display:flex; flex-direction:column;"><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:24px; line-height:1; letter-spacing:-0.02em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></div><div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:8px; letter-spacing:0.18em; text-transform:uppercase; color:#8A8475; margin-top:6px;">Juntos nos levantamos</div></div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- WEB HEADER PREVIEW -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:22px;">
+        <div style="border:1px solid #E4DED2; border-radius:14px; overflow:hidden; background:#fff;">
+          <div style="background:#F1ECE2; padding:9px 14px; display:flex; gap:6px; align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:#D9D2C4;"></span><span style="width:9px;height:9px;border-radius:50%;background:#D9D2C4;"></span><span style="width:9px;height:9px;border-radius:50%;background:#D9D2C4;"></span><span style="margin-left:8px; font-size:10px; color:#A39C8C; font-family:'Space Grotesk',monospace;">coropresente.org</span></div>
+          <div style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:9px;"><svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/></svg><span style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:17px; letter-spacing:-0.02em;"><span style="color:#0B47A1;">Coro</span> <span style="color:#D23A2E;">Presente</span></span></div>
+            <div style="display:flex; align-items:center; gap:16px;"><span style="font-size:11.5px; font-weight:600; color:#5A6275;">Buscar persona</span><span style="font-size:11.5px; font-weight:600; color:#5A6275;">Voluntarios</span><span style="font-size:11.5px; font-weight:700; color:#16223A; background:#F4C033; padding:7px 13px; border-radius:8px;">Registrar</span></div>
+          </div>
+        </div>
+
+        <div style="border:1px solid #1B2742; border-radius:14px; overflow:hidden; background:#0E1B33;">
+          <div style="background:#0A1426; padding:9px 14px; display:flex; gap:6px; align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:#2A3654;"></span><span style="width:9px;height:9px;border-radius:50%;background:#2A3654;"></span><span style="width:9px;height:9px;border-radius:50%;background:#2A3654;"></span><span style="margin-left:8px; font-size:10px; color:#5C6A8A; font-family:'Space Grotesk',monospace;">coropresente.org</span></div>
+          <div style="padding:16px 20px; display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:9px;"><svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#3F6FC4"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="64" cy="58" r="7" fill="#3F6FC4"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="50" cy="63" r="6" fill="#E8554A"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#E8554A"/></svg><span style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:17px; letter-spacing:-0.02em; color:#fff;">Coro <span style="color:#F0907F;">Presente</span></span></div>
+            <div style="display:flex; align-items:center; gap:16px;"><span style="font-size:11.5px; font-weight:600; color:#9AA7C2;">Buscar persona</span><span style="font-size:11.5px; font-weight:600; color:#9AA7C2;">Voluntarios</span><span style="font-size:11.5px; font-weight:700; color:#16223A; background:#F4C033; padding:7px 13px; border-radius:8px;">Registrar</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HEADER -->
+    <header style="margin-bottom:36px; display:flex; flex-direction:column; gap:14px;">
+      <span style="font-family:'Space Grotesk',monospace; font-size:12px; font-weight:600; letter-spacing:0.22em; text-transform:uppercase; color: {{ headMut }};">Identidad · FalcónAyuda</span>
+      <h1 style="margin:0; font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:44px; line-height:1.02; letter-spacing:-0.02em; color: {{ headInk }};">Exploración de logotipo</h1>
+      <p style="margin:0; max-width:680px; font-size:15px; line-height:1.6; color: {{ headMut }};">Seis propuestas de lockup (símbolo + nombre) para la página web. Conceptos: manos que ayudan, refugio y familia. Paleta basada en la bandera de Venezuela.</p>
+      <div style="display:flex; align-items:center; gap:18px; margin-top:6px;">
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:15px;height:15px;border-radius:50%;background:#0B47A1;"></span><span style="font-size:12px;font-weight:600;color: {{ headMut }};">Azul</span></div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:15px;height:15px;border-radius:50%;background:#F4C033;"></span><span style="font-size:12px;font-weight:600;color: {{ headMut }};">Amarillo</span></div>
+        <div style="display:flex; align-items:center; gap:8px;"><span style="width:15px;height:15px;border-radius:50%;background:#D23A2E;"></span><span style="font-size:12px;font-weight:600;color: {{ headMut }};">Rojo</span></div>
+      </div>
+    </header>
+
+    <!-- GRID -->
+    <section style="display:grid; grid-template-columns: {{ gridCols }}; gap:22px;">
+
+      <!-- 1a REFUGIO -->
+      <div id="1a" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.08em; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">1a</span>
+          <span style="font-size:13px; font-weight:700; color:#16223A;">Refugio</span>
+          <span style="font-size:11px; color:#9A9486; margin-left:auto;">casa + corazón</span>
+        </div>
+        <div style="flex:1; min-height:128px; display:flex; align-items:center; justify-content:center; gap:18px;">
+          <svg viewBox="0 0 100 100" width="70" height="70" aria-hidden="true">
+            <rect x="22" y="46" width="56" height="42" rx="6" fill="#0B47A1"/>
+            <polygon points="50,12 88,49 12,49" fill="#F4C033"/>
+            <path d="M50,80 C41,72 33,66 33,58 C33,53 37,49 43,49 C47,49 49,51 50,54 C51,51 53,49 57,49 C63,49 67,53 67,58 C67,66 59,72 50,80 Z" fill="#D23A2E"/>
+          </svg>
+          <div style="display:flex; flex-direction:column;">
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:31px; line-height:1; letter-spacing:-0.015em; color:#16223A; white-space:nowrap;">Falcón<span style="color:#D23A2E;">Ayuda</span></div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8A8475; margin-top:7px;">Coro presente · Falcón solidario</div>
+          </div>
+        </div>
+        <div style="height:1px; background:#F0EBE0;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #EFE9DE; border-radius:12px;">
+            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><rect x="22" y="46" width="56" height="42" rx="6" fill="#0B47A1"/><polygon points="50,12 88,49 12,49" fill="#F4C033"/><path d="M50,80 C41,72 33,66 33,58 C33,53 37,49 43,49 C47,49 49,51 50,54 C51,51 53,49 57,49 C63,49 67,53 67,58 C67,66 59,72 50,80 Z" fill="#D23A2E"/></svg>
+            <span style="font-size:10px; font-weight:600; color:#9A9486;">Símbolo</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#0E1B33; border-radius:12px; padding:9px 14px;">
+            <svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><rect x="22" y="46" width="56" height="42" rx="6" fill="#3F6FC4"/><polygon points="50,12 88,49 12,49" fill="#F4C033"/><path d="M50,80 C41,72 33,66 33,58 C33,53 37,49 43,49 C47,49 49,51 50,54 C51,51 53,49 57,49 C63,49 67,53 67,58 C67,66 59,72 50,80 Z" fill="#E8554A"/></svg>
+            <span style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:14px; color:#fff;">Falcón<span style="color:#F0907F;">Ayuda</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1b MANOS QUE RESGUARDAN -->
+      <div id="1b" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.08em; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">1b</span>
+          <span style="font-size:13px; font-weight:700; color:#16223A;">Resguardo</span>
+          <span style="font-size:11px; color:#9A9486; margin-left:auto;">brazos + familia</span>
+        </div>
+        <div style="flex:1; min-height:128px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+          <svg viewBox="0 0 100 100" width="62" height="62" aria-hidden="true">
+            <path d="M18,56 L50,22 L82,56" fill="none" stroke="#F4C033" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="37" cy="68" r="8" fill="#0B47A1"/>
+            <circle cx="63" cy="68" r="8" fill="#0B47A1"/>
+            <circle cx="50" cy="72" r="9" fill="#D23A2E"/>
+          </svg>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:25px; line-height:1; letter-spacing:0.01em; color:#16223A; white-space:nowrap; text-transform:uppercase;">Falcón <span style="color:#0B47A1;">Ayuda</span></div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#8A8475; margin-top:8px;">Coro presente · Falcón solidario</div>
+          </div>
+        </div>
+        <div style="height:1px; background:#F0EBE0;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #EFE9DE; border-radius:12px;">
+            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M18,56 L50,22 L82,56" fill="none" stroke="#F4C033" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><circle cx="37" cy="68" r="8" fill="#0B47A1"/><circle cx="63" cy="68" r="8" fill="#0B47A1"/><circle cx="50" cy="72" r="9" fill="#D23A2E"/></svg>
+            <span style="font-size:10px; font-weight:600; color:#9A9486;">Símbolo</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#0E1B33; border-radius:12px; padding:9px 14px;">
+            <svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><path d="M18,56 L50,22 L82,56" fill="none" stroke="#F4C033" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/><circle cx="37" cy="68" r="8" fill="#3F6FC4"/><circle cx="63" cy="68" r="8" fill="#3F6FC4"/><circle cx="50" cy="72" r="9" fill="#E8554A"/></svg>
+            <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:12.5px; color:#fff; text-transform:uppercase;">Falcón <span style="color:#7FA6E8;">Ayuda</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1c FAMILIA -->
+      <div id="1c" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.08em; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">1c</span>
+          <span style="font-size:13px; font-weight:700; color:#16223A;">Familia bajo techo</span>
+          <span style="font-size:11px; color:#9A9486; margin-left:auto;">3 personas</span>
+        </div>
+        <div style="flex:1; min-height:128px; display:flex; align-items:center; justify-content:center; gap:18px;">
+          <svg viewBox="0 0 100 100" width="70" height="70" aria-hidden="true">
+            <path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/>
+            <circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/>
+            <circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/>
+          </svg>
+          <div style="display:flex; flex-direction:column;">
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:30px; line-height:1; letter-spacing:-0.02em; color:#16223A; white-space:nowrap;"><span style="color:#0B47A1;">Falcón</span><span style="color:#D23A2E;">Ayuda</span></div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8A8475; margin-top:7px;">Coro presente · Falcón solidario</div>
+          </div>
+        </div>
+        <div style="height:1px; background:#F0EBE0;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #EFE9DE; border-radius:12px;">
+            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#0B47A1"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="64" cy="58" r="7" fill="#0B47A1"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#0B47A1"/><circle cx="50" cy="63" r="6" fill="#D23A2E"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#D23A2E"/></svg>
+            <span style="font-size:10px; font-weight:600; color:#9A9486;">Símbolo</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#0E1B33; border-radius:12px; padding:9px 14px;">
+            <svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><path d="M14,46 L50,20 L86,46" fill="none" stroke="#F4C033" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/><circle cx="36" cy="58" r="7" fill="#3F6FC4"/><rect x="29" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="64" cy="58" r="7" fill="#3F6FC4"/><rect x="57" y="66" width="14" height="20" rx="7" fill="#3F6FC4"/><circle cx="50" cy="63" r="6" fill="#E8554A"/><rect x="44" y="70" width="12" height="16" rx="6" fill="#E8554A"/></svg>
+            <span style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:14px; color:#fff;"><span style="color:#7FA6E8;">Falcón</span>Ayuda</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1d CORAZÓN DE MANOS -->
+      <div id="1d" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.08em; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">1d</span>
+          <span style="font-size:13px; font-weight:700; color:#16223A;">Corazón de manos</span>
+          <span style="font-size:11px; color:#9A9486; margin-left:auto;">dos mitades</span>
+        </div>
+        <div style="flex:1; min-height:128px; display:flex; align-items:center; justify-content:center; gap:18px;">
+          <svg viewBox="0 0 100 100" width="68" height="68" aria-hidden="true">
+            <path d="M50,37 C48,32 44,29 38,29 C30,29 24,34 24,42 C24,54 36,62 50,74 Z" fill="#0B47A1"/>
+            <path d="M50,37 C52,32 56,29 62,29 C70,29 76,34 76,42 C76,54 64,62 50,74 Z" fill="#F4C033"/>
+            <circle cx="50" cy="40" r="5.5" fill="#D23A2E"/>
+          </svg>
+          <div style="display:flex; flex-direction:column;">
+            <div style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:30px; line-height:0.98; letter-spacing:-0.015em; color:#16223A;">Falcón<br><span style="color:#D23A2E;">Ayuda</span></div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8A8475; margin-top:8px;">Coro presente · solidario</div>
+          </div>
+        </div>
+        <div style="height:1px; background:#F0EBE0;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #EFE9DE; border-radius:12px;">
+            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M50,37 C48,32 44,29 38,29 C30,29 24,34 24,42 C24,54 36,62 50,74 Z" fill="#0B47A1"/><path d="M50,37 C52,32 56,29 62,29 C70,29 76,34 76,42 C76,54 64,62 50,74 Z" fill="#F4C033"/><circle cx="50" cy="40" r="5.5" fill="#D23A2E"/></svg>
+            <span style="font-size:10px; font-weight:600; color:#9A9486;">Símbolo</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#0E1B33; border-radius:12px; padding:9px 14px;">
+            <svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><path d="M50,37 C48,32 44,29 38,29 C30,29 24,34 24,42 C24,54 36,62 50,74 Z" fill="#3F6FC4"/><path d="M50,37 C52,32 56,29 62,29 C70,29 76,34 76,42 C76,54 64,62 50,74 Z" fill="#F4C033"/><circle cx="50" cy="40" r="5.5" fill="#E8554A"/></svg>
+            <span style="font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:14px; color:#fff;">Falcón<span style="color:#F0907F;">Ayuda</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1e ESCUDO -->
+      <div id="1e" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.08em; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">1e</span>
+          <span style="font-size:13px; font-weight:700; color:#16223A;">Escudo solidario</span>
+          <span style="font-size:11px; color:#9A9486; margin-left:auto;">confianza</span>
+        </div>
+        <div style="flex:1; min-height:128px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+          <svg viewBox="0 0 100 100" width="60" height="60" aria-hidden="true">
+            <path d="M50,8 L86,20 L86,50 C86,72 70,86 50,93 C30,86 14,72 14,50 L14,20 Z" fill="#0B47A1"/>
+            <polygon points="50,30 70,46 30,46" fill="#F4C033"/>
+            <rect x="34" y="46" width="32" height="22" rx="3" fill="#FAF7F1"/>
+            <path d="M50,64 C45,60 40,56 40,52 C40,49 42.5,47 45.5,47 C47.5,47 49,48 50,50 C51,48 52.5,47 54.5,47 C57.5,47 60,49 60,52 C60,56 55,60 50,64 Z" fill="#D23A2E"/>
+          </svg>
+          <div style="display:flex; flex-direction:column; align-items:center;">
+            <div style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:27px; line-height:1; letter-spacing:-0.01em; color:#16223A; white-space:nowrap;">Falcón<span style="color:#0B47A1;">Ayuda</span></div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:9px; letter-spacing:0.2em; text-transform:uppercase; color:#8A8475; margin-top:8px;">Gestión humanitaria · Coro</div>
+          </div>
+        </div>
+        <div style="height:1px; background:#F0EBE0;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #EFE9DE; border-radius:12px;">
+            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><path d="M50,8 L86,20 L86,50 C86,72 70,86 50,93 C30,86 14,72 14,50 L14,20 Z" fill="#0B47A1"/><polygon points="50,30 70,46 30,46" fill="#F4C033"/><rect x="34" y="46" width="32" height="22" rx="3" fill="#FAF7F1"/><path d="M50,64 C45,60 40,56 40,52 C40,49 42.5,47 45.5,47 C47.5,47 49,48 50,50 C51,48 52.5,47 54.5,47 C57.5,47 60,49 60,52 C60,56 55,60 50,64 Z" fill="#D23A2E"/></svg>
+            <span style="font-size:10px; font-weight:600; color:#9A9486;">Símbolo</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#0E1B33; border-radius:12px; padding:9px 14px;">
+            <svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><path d="M50,8 L86,20 L86,50 C86,72 70,86 50,93 C30,86 14,72 14,50 L14,20 Z" fill="#3F6FC4"/><polygon points="50,30 70,46 30,46" fill="#F4C033"/><rect x="34" y="46" width="32" height="22" rx="3" fill="#0E1B33"/><path d="M50,64 C45,60 40,56 40,52 C40,49 42.5,47 45.5,47 C47.5,47 49,48 50,50 C51,48 52.5,47 54.5,47 C57.5,47 60,49 60,52 C60,56 55,60 50,64 Z" fill="#E8554A"/></svg>
+            <span style="font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:13px; color:#fff;">Falcón<span style="color:#7FA6E8;">Ayuda</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1f UNIÓN -->
+      <div id="1f" style="background:#fff; border:1px solid #ECE6DA; border-radius:18px; padding:22px 22px 18px; display:flex; flex-direction:column; gap:16px; box-shadow:0 14px 34px -26px rgba(20,34,58,0.45);">
+        <div style="display:flex; align-items:baseline; gap:10px;">
+          <span style="font-family:'Space Grotesk',monospace; font-size:11px; font-weight:600; letter-spacing:0.08em; color:#0B47A1; background:rgba(11,71,161,0.08); padding:3px 9px; border-radius:999px; border:1px solid rgba(11,71,161,0.16);">1f</span>
+          <span style="font-size:13px; font-weight:700; color:#16223A;">Unión</span>
+          <span style="font-size:11px; color:#9A9486; margin-left:auto;">comunidad</span>
+        </div>
+        <div style="flex:1; min-height:128px; display:flex; align-items:center; justify-content:center; gap:18px;">
+          <svg viewBox="0 0 100 100" width="70" height="70" aria-hidden="true">
+            <circle cx="50" cy="18" r="7" fill="#D23A2E"/>
+            <circle cx="73" cy="27" r="7" fill="#F4C033"/>
+            <circle cx="82" cy="50" r="7" fill="#0B47A1"/>
+            <circle cx="73" cy="73" r="7" fill="#F4C033"/>
+            <circle cx="50" cy="82" r="7" fill="#0B47A1"/>
+            <circle cx="27" cy="73" r="7" fill="#F4C033"/>
+            <circle cx="18" cy="50" r="7" fill="#0B47A1"/>
+            <circle cx="27" cy="27" r="7" fill="#F4C033"/>
+            <path d="M50,62 C44,57 37,52 37,46 C37,42 40,39 44,39 C47,39 49,41 50,43 C51,41 53,39 56,39 C60,39 63,42 63,46 C63,52 56,57 50,62 Z" fill="#0B47A1"/>
+          </svg>
+          <div style="display:flex; flex-direction:column;">
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:30px; line-height:1; letter-spacing:-0.02em; color:#16223A; white-space:nowrap;"><span style="color:#D23A2E;">Falcón</span><span style="color:#0B47A1;">Ayuda</span></div>
+            <div style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:600; font-size:9.5px; letter-spacing:0.16em; text-transform:uppercase; color:#8A8475; margin-top:7px;">Coro presente · Falcón solidario</div>
+          </div>
+        </div>
+        <div style="height:1px; background:#F0EBE0;"></div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="display:flex; align-items:center; gap:8px; padding:8px 11px; border:1px solid #EFE9DE; border-radius:12px;">
+            <svg viewBox="0 0 100 100" width="30" height="30" aria-hidden="true"><circle cx="50" cy="18" r="7" fill="#D23A2E"/><circle cx="73" cy="27" r="7" fill="#F4C033"/><circle cx="82" cy="50" r="7" fill="#0B47A1"/><circle cx="73" cy="73" r="7" fill="#F4C033"/><circle cx="50" cy="82" r="7" fill="#0B47A1"/><circle cx="27" cy="73" r="7" fill="#F4C033"/><circle cx="18" cy="50" r="7" fill="#0B47A1"/><circle cx="27" cy="27" r="7" fill="#F4C033"/><path d="M50,62 C44,57 37,52 37,46 C37,42 40,39 44,39 C47,39 49,41 50,43 C51,41 53,39 56,39 C60,39 63,42 63,46 C63,52 56,57 50,62 Z" fill="#0B47A1"/></svg>
+            <span style="font-size:10px; font-weight:600; color:#9A9486;">Símbolo</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:9px; background:#0E1B33; border-radius:12px; padding:9px 14px;">
+            <svg viewBox="0 0 100 100" width="22" height="22" aria-hidden="true"><circle cx="50" cy="18" r="7" fill="#E8554A"/><circle cx="73" cy="27" r="7" fill="#F4C033"/><circle cx="82" cy="50" r="7" fill="#3F6FC4"/><circle cx="73" cy="73" r="7" fill="#F4C033"/><circle cx="50" cy="82" r="7" fill="#3F6FC4"/><circle cx="27" cy="73" r="7" fill="#F4C033"/><circle cx="18" cy="50" r="7" fill="#3F6FC4"/><circle cx="27" cy="27" r="7" fill="#F4C033"/><path d="M50,62 C44,57 37,52 37,46 C37,42 40,39 44,39 C47,39 49,41 50,43 C51,41 53,39 56,39 C60,39 63,42 63,46 C63,52 56,57 50,62 Z" fill="#fff"/></svg>
+            <span style="font-family:'Plus Jakarta Sans',sans-serif; font-weight:800; font-size:14px; color:#fff;"><span style="color:#F0907F;">Falcón</span>Ayuda</span>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- FOOTER -->
+    <sc-if value="{{ mostrarTagline }}" hint-placeholder-val="{{ true }}">
+      <footer style="margin-top:40px; padding-top:22px; border-top:1px solid rgba(140,140,120,0.22); display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+        <span style="font-family:'Bricolage Grotesque',sans-serif; font-weight:600; font-size:15px; color: {{ headInk }};">Coro presente · Falcón solidario</span>
+        <span style="font-size:12.5px; color: {{ headMut }};">Dime qué propuesta refinar (1a–1f) o pídeme combinar elementos de varias.</span>
+      </footer>
+    </sc-if>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900},&quot;fondo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Cálido&quot;,&quot;Claro&quot;,&quot;Oscuro&quot;],&quot;default&quot;:&quot;Cálido&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Presentación&quot;},&quot;columnas&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;3&quot;,&quot;2&quot;],&quot;default&quot;:&quot;3&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Presentación&quot;},&quot;mostrarTagline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Presentación&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const fondo = this.props.fondo ?? 'Cálido';
+    const map = { 'Cálido': '#FAF7F1', 'Claro': '#FFFFFF', 'Oscuro': '#0F1626' };
+    const isDark = fondo === 'Oscuro';
+    const cols = (this.props.columnas ?? '3') === '2' ? 'repeat(2, 1fr)' : 'repeat(3, 1fr)';
+    return {
+      bgColor: map[fondo] || '#FAF7F1',
+      gridCols: cols,
+      headInk: isDark ? '#F3EFE7' : '#16223A',
+      headMut: isDark ? '#9AA7C2' : '#6A7385',
+      mostrarTagline: this.props.mostrarTagline ?? true
+    };
+  }
+}
+</script>
+</body>
+</html>

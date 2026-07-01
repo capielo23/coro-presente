@@ -1,8 +1,8 @@
-export type RolVoluntario = 'admin' | 'voluntario'
+export type RolVoluntario = 'admin' | 'coordinador' | 'voluntario'
 export type EstadoVoluntario = 'pendiente' | 'aprobado' | 'rechazado'
 export type TipoCaso = 'individual' | 'familiar'
 export type EstadoCaso = 'activo' | 'estable' | 'cerrado' | 'critico'
-export type EstadoNecesidad = 'pendiente' | 'en_gestion' | 'entregado' | 'recurrente'
+export type EstadoNecesidad = 'pendiente' | 'en_gestion' | 'entregado' | 'parcial' | 'recurrente'
 export type CategoriaNecesidad =
   | 'alimentacion' | 'ropa' | 'medicamentos' | 'traslado'
   | 'alojamiento' | 'hogar' | 'utiles' | 'ninos' | 'adulto_mayor' | 'otro'
@@ -15,6 +15,12 @@ export interface Voluntario {
   rol: RolVoluntario
   estado: EstadoVoluntario
   created_at: string
+  areas_ayuda?: string[]
+  especialidades?: string[]
+  zona_cobertura?: string
+  disponibilidad?: string
+  descripcion_ayuda?: string
+  puede_aprobar_coordinadores?: boolean
 }
 
 export interface Caso {
@@ -62,6 +68,7 @@ export interface Necesidad {
   es_recurrente: boolean
   frecuencia?: string
   proxima_fecha?: string
+  persona_id?: string | null
   entregado_por?: string
   fecha_entrega?: string
   descripcion_entrega?: string

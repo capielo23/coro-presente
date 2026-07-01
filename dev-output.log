@@ -1,0 +1,210 @@
+
+> coroayuda@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1597ms
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 3.4s (594 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /_next/static/webpack/011050c84860a5cf.webpack.hot-update.json 404 in 3653ms
+ ✓ Compiled in 194ms (238 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET /_next/static/webpack/011050c84860a5cf.webpack.hot-update.json 404 in 31ms
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (102kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (250kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 957ms (644 modules)
+ GET /login 200 in 1074ms
+ GET /_next/static/webpack/011050c84860a5cf.webpack.hot-update.json 404 in 103ms
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ ✓ Compiled /favicon.ico in 131ms (365 modules)
+ GET /favicon.ico 200 in 182ms
+ GET /login 200 in 92ms
+ GET /favicon.ico 200 in 8ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 543ms (766 modules)
+ ✓ Compiled /casos in 133ms (736 modules)
+ GET /casos 200 in 757ms
+ ✓ Compiled /casos/[id] in 215ms (752 modules)
+ ✓ Compiled /_not-found in 149ms (755 modules)
+ GET /.well-known/appspecific/com.chrome.devtools.json 404 in 257ms
+ ✓ Compiled /admin in 186ms (757 modules)
+ ✓ Compiled /admin/voluntarios in 170ms (763 modules)
+ ✓ Compiled /api/casos/[id] in 255ms (464 modules)
+ ✓ Compiled (466 modules)
+ GET /api/admin/voluntarios 403 in 726ms
+ GET /api/admin/voluntarios 403 in 161ms
+ PATCH /api/casos/33e922fc-28c3-4a74-99ea-70bee8af9f33 200 in 1089ms
+ PATCH /api/casos/33e922fc-28c3-4a74-99ea-70bee8af9f33 200 in 468ms
+ GET /casos/33e922fc-28c3-4a74-99ea-70bee8af9f33 200 in 490ms
+ ✓ Compiled /api/necesidades in 282ms (482 modules)
+ POST /api/necesidades 201 in 850ms
+ ✓ Compiled /aprendizaje in 225ms (805 modules)
+ GET /aprendizaje 200 in 564ms
+ GET /admin/voluntarios 200 in 301ms
+ ✓ Compiled /api/admin/voluntarios in 103ms (482 modules)
+ GET /api/admin/voluntarios 403 in 434ms
+ GET /api/admin/voluntarios 403 in 191ms
+ ✓ Compiled in 330ms (738 modules)
+ GET /admin/voluntarios 200 in 295ms
+ GET /api/admin/voluntarios 200 in 341ms
+ GET /api/admin/voluntarios 200 in 285ms
+ ✓ Compiled /buscar in 201ms (731 modules)
+ GET /buscar 200 in 552ms
+ ✓ Compiled /api/buscar-privado in 166ms (406 modules)
+ GET /api/buscar-privado?q=Moreno 200 in 673ms
+ ✓ Compiled /casos/nuevo in 210ms (737 modules)
+ GET /casos/nuevo 200 in 533ms
+ ✓ Compiled /api/sectores-coro in 111ms (412 modules)
+ GET /api/sectores-coro 200 in 254ms
+ GET /api/sectores-coro 200 in 7ms
+ ✓ Compiled in 438ms (720 modules)
+ ✓ Compiled in 245ms (720 modules)
+ GET /casos/33e922fc-28c3-4a74-99ea-70bee8af9f33 200 in 481ms
+ ✓ Compiled /dashboard in 115ms (382 modules)
+ ✓ Compiled /casos in 151ms (381 modules)
+ ✓ Compiled in 588ms (847 modules)
+ ✓ Compiled in 114ms (341 modules)
+ ✓ Compiled in 314ms (847 modules)
+ ✓ Compiled in 125ms (341 modules)
+ ✓ Compiled in 180ms (341 modules)
+ ✓ Compiled in 284ms (720 modules)
+ ✓ Compiled in 332ms (720 modules)
+ ✓ Compiled in 234ms (720 modules)
+ ✓ Compiled in 226ms (720 modules)
+ ✓ Compiled in 241ms (720 modules)
+ ✓ Compiled in 260ms (720 modules)
+ ✓ Compiled in 227ms (720 modules)
+ ✓ Compiled in 202ms (720 modules)
+ ✓ Compiled in 136ms (341 modules)
+ ✓ Compiled in 95ms (341 modules)
+ ✓ Compiled in 118ms (341 modules)
+ ✓ Compiled in 133ms (341 modules)
+ ✓ Compiled in 275ms (720 modules)
+ ✓ Compiled in 236ms (720 modules)
+ ✓ Compiled in 426ms (709 modules)
+ ✓ Compiled in 358ms (723 modules)
+ ✓ Compiled /dashboard in 194ms (384 modules)
+ ⨯ TypeError: Cannot read properties of undefined (reading 'clientModules')
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:40:25679
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\lib\trace\tracer.js:191:62
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\lib\trace\tracer.js:140:36
+    at NoopContextManager.with (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NoopTracer.startActiveSpan (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18093)
+    at ProxyTracer.startActiveSpan (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:18854)
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\lib\trace\tracer.js:122:103
+    at NoopContextManager.with (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:7062)
+    at ContextAPI.with (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\@opentelemetry\api\index.js:1:518)
+    at NextTracerImpl.trace (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\lib\trace\tracer.js:122:28)
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\lib\trace\tracer.js:191:31
+    at ne (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\next-server\app-page.runtime.dev.js:42:1678)
+    at async doRender (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\base-server.js:1427:30)
+    at async cacheEntry.responseCache.get.routeKind (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\base-server.js:1588:28) {
+  page: '/dashboard'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1080ms (941 modules)
+ GET /dashboard 500 in 1601ms
+ ⨯ Failed to generate static paths for /casos/[id]:
+Error: Cannot find module './vendor-chunks/@supabase.js'
+Require stack:
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\.next\server\webpack-runtime.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\.next\server\app\(dashboard)\casos\[id]\page.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\load-components.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\build\utils.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\dev\static-paths-worker.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\jest-worker\processChild.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1421:15)
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
+    at Module._load (node:internal/modules/cjs/loader:1227:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1504:12)
+    at mod.require (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\.next\\server\\webpack-runtime.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\.next\\server\\app\\(dashboard)\\casos\\[id]\\page.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\require.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\load-components.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\build\\utils.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\dev\\static-paths-worker.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\compiled\\jest-worker\\processChild.js'
+  ]
+}
+ ⨯ Failed to generate static paths for /casos/[id]:
+Error: Cannot find module './vendor-chunks/@supabase.js'
+Require stack:
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\.next\server\webpack-runtime.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\.next\server\app\(dashboard)\casos\[id]\page.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\load-components.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\build\utils.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\dev\static-paths-worker.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\jest-worker\processChild.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1421:15)
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
+    at Module._load (node:internal/modules/cjs/loader:1227:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1504:12)
+    at mod.require (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\.next\\server\\webpack-runtime.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\.next\\server\\app\\(dashboard)\\casos\\[id]\\page.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\require.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\load-components.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\build\\utils.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\dev\\static-paths-worker.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\compiled\\jest-worker\\processChild.js'
+  ]
+}
+ ⨯ Error: Cannot find module './vendor-chunks/@supabase.js'
+Require stack:
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\.next\server\webpack-runtime.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\.next\server\app\(dashboard)\casos\[id]\page.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\load-components.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\build\utils.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\dev\static-paths-worker.js
+- C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\compiled\jest-worker\processChild.js
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1421:15)
+    at C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require-hook.js:55:36
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1059:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1064:22)
+    at Module._load (node:internal/modules/cjs/loader:1227:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:245:24)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1504:12)
+    at mod.require (C:\Users\jjcap\OneDrive\Desktop\Ayuda Venezuela\coroayuda\node_modules\next\dist\server\require-hook.js:65:28)
+    at require (node:internal/modules/helpers:152:16) {
+  type: 'Error',
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\.next\\server\\webpack-runtime.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\.next\\server\\app\\(dashboard)\\casos\\[id]\\page.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\require.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\load-components.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\build\\utils.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\server\\dev\\static-paths-worker.js',
+    'C:\\Users\\jjcap\\OneDrive\\Desktop\\Ayuda Venezuela\\coroayuda\\node_modules\\next\\dist\\compiled\\jest-worker\\processChild.js'
+  ],
+  page: '/casos/33e922fc-28c3-4a74-99ea-70bee8af9f33'
+}
+ GET /casos/33e922fc-28c3-4a74-99ea-70bee8af9f33 500 in 248ms

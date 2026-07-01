@@ -8,6 +8,10 @@ const schema = z.object({
   password: z.string().min(8, 'Mínimo 8 caracteres'),
   cedula: z.string().optional(),
   telefono: z.string().min(7, 'Teléfono requerido'),
+  areas_ayuda: z.array(z.string()).optional(),
+  areas_nuevas: z.array(z.object({ clave: z.string(), etiqueta: z.string() })).optional(),
+  descripcion_ayuda: z.string().optional(),
+  solicita_rol: z.enum(['voluntario', 'coordinador']).optional(),
 })
 
 export async function POST(request: NextRequest) {
@@ -18,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
   }
 
-  const { nombre_completo, email, password, cedula, telefono } = parsed.data
+  const { nombre_completo, email, password, cedula, telefono, areas_ayuda, areas_nuevas, descripcion_ayuda, solicita_rol } = parsed.data
   const supabase = createAdminClient()
 
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
@@ -39,8 +43,10 @@ export async function POST(request: NextRequest) {
     nombre_completo,
     cedula: cedula || null,
     telefono,
-    rol: 'voluntario',
+    rol: solicita_rol === 'coordinador' ? 'coordinador' : 'voluntario',
     estado: 'pendiente',
+    areas_ayuda: areas_ayuda || [],
+    descripcion_ayuda: descripcion_ayuda || null,
   })
 
   if (profileError) {
@@ -48,8 +54,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Error al guardar perfil' }, { status: 500 })
   }
 
-  return NextResponse.json(
-    { message: 'Solicitud enviada. Un coordinador aprobará tu acceso pronto.' },
-    { status: 201 }
-  )
+  // Agregar áreas nuevas al catálogo para que futuros voluntarios las vean
+  if (areas_nuevas && areas_nuevas.length > 0) {
+    await supabase.from('areas_ayuda_catalogo').upsert(
+      areas_nuevas.map(a => ({
+        clave: a.clave,
+        etiqueta: a.etiqueta,
+        es_personalizada: true,
+        usos: 1,
+      })),
+      { onConflict: 'clave' }
+    )
+  }
+
+  const mensaje = solicita_rol === 'coordinador'
+    ? 'Solicitud de coordinador enviada. El equipo revisará tu acceso y te contactará pronto.'
+    : 'Solicitud enviada. Un coordinador aprobará tu acceso pronto.'
+
+  return NextResponse.json({ message: mensaje }, { status: 201 })
 }

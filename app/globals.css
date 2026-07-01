@@ -3,21 +3,95 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Coro Presente Design System — Compassion Blue palette */
+  --color-primary:     #0891B2; /* cyan-600 */
+  --color-primary-dark:#0C4A6E; /* sidebar bg */
+  --color-secondary:   #22D3EE; /* cyan-300 */
+  --color-accent:      #EA580C; /* orange-600 — acción urgente */
+  --color-background:  #F0FAFB;
+  --color-surface:     #FFFFFF;
+  --color-muted:       #E8F1F6;
+  --color-border:      #BAE6FD; /* sky-200 */
+  --color-foreground:  #164E63; /* cyan-950 */
+  --color-text:        #1E293B; /* slate-800 */
+  --color-text-muted:  #64748B; /* slate-500 */
+  --color-destructive: #DC2626; /* red-600 */
+  --color-success:     #16A34A; /* green-600 */
+  --color-warning:     #D97706; /* amber-600 */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: var(--color-background);
+  --foreground: var(--color-text);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter, 'Inter', system-ui, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus ring global — WCAG AA */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Skeleton shimmer ────────────────────────── */
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #e8f1f6 25%, #f4f8fb 50%, #e8f1f6 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* ── Micro-interactions (puro CSS, cero JS) ──── */
+@keyframes badgePulse {
+  0%, 100% { transform: scale(1);    }
+  50%       { transform: scale(1.15); }
+}
+
+/* Badge de notificaciones late suavemente */
+.badge-pulse { animation: badgePulse 2.4s ease-in-out infinite; }
+
+/* Hover lift en tarjetas */
+.card-hover {
+  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px -4px rgba(8,145,178,0.14), 0 2px 6px -2px rgba(0,0,0,0.05);
+}
+
+/* Scale al presionar botones */
+.btn-press { transition: transform 0.1s ease, filter 0.12s ease; }
+.btn-press:active { transform: scale(0.97); filter: brightness(0.95); }
+
+/* Reduced motion — apaga todo */
+@media (prefers-reduced-motion: reduce) {
+  .badge-pulse, .card-hover, .btn-press {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
 }
 
 @layer utilities {
