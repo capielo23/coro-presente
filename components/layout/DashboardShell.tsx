@@ -6,7 +6,7 @@ import Logo, { Wordmark } from '@/components/ui/Logo'
 
 interface Props {
   children: React.ReactNode
-  voluntario: { nombre_completo: string; rol: string }
+  voluntario: { nombre_completo: string; rol: string; puedeGestionar?: boolean }
   pendientesCount?: number
   perfilCompletitud?: number
 }
@@ -31,7 +31,7 @@ export default function DashboardShell({ children, voluntario, pendientesCount =
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <Sidebar
-          esAdmin={voluntario.rol === 'admin' || voluntario.rol === 'coordinador'}
+          esAdmin={voluntario.puedeGestionar ?? (voluntario.rol === 'admin' || voluntario.rol === 'coordinador')}
           nombreVoluntario={voluntario.nombre_completo}
           onClose={() => setSidebarOpen(false)}
           pendientesCount={pendientesCount}

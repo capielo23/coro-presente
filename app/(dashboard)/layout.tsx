@@ -77,8 +77,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     )
   }
 
+  const puedeGestionar =
+    ['admin', 'coordinador'].includes(voluntario.rol) || !!voluntario.puede_aprobar_coordinadores
+
   let pendientesCount = 0
-  if (['admin', 'coordinador'].includes(voluntario.rol)) {
+  if (puedeGestionar) {
     // Cacheado 30s — el badge no necesita ser instantáneo
     const getPendientes = unstable_cache(
       async () => {
@@ -100,7 +103,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <DashboardShell
-      voluntario={{ nombre_completo: voluntario.nombre_completo, rol: voluntario.rol }}
+      voluntario={{ nombre_completo: voluntario.nombre_completo, rol: voluntario.rol, puedeGestionar }}
       pendientesCount={pendientesCount}
       perfilCompletitud={perfilCompletitud}
     >
