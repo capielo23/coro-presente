@@ -505,7 +505,7 @@ export default function NecesidadGestion({
           {!detallarAbierto && (
             <p className="text-[11px] text-gray-400 flex items-center gap-1">
               <ListChecks className="w-3 h-3 shrink-0" />
-              Agrega los artículos específicos con "Detallar artículos" para poder marcar cada entrega.
+              Agrega los artículos específicos con &ldquo;Detallar artículos&rdquo; para poder marcar cada entrega.
             </p>
           )}
         </div>

@@ -14,12 +14,6 @@ const ESTADO_CASO_LABELS: Record<string, string> = {
   activo: 'Activo', estable: 'Estable', critico: 'Crítico', cerrado: 'Cerrado',
 }
 
-const CATEGORIA_LABELS: Record<string, string> = {
-  alimentacion: 'Alimentación', ropa: 'Ropa y calzado', medicamentos: 'Medicamentos',
-  traslado: 'Traslado', alojamiento: 'Alojamiento', hogar: 'Artículos del hogar',
-  utiles: 'Útiles escolares', ninos: 'Niños', adulto_mayor: 'Adulto mayor', otro: 'Otro',
-}
-
 interface PersonaResultado {
   id: string
   nombre: string
