@@ -20,7 +20,7 @@ function Chips({ nombres, vacio }: { nombres: string[]; vacio: string }) {
 
 export default function EquipoCaso({ responsable, registrador, colaboradores, entregadores }: Props) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div>
       <div className="flex items-center gap-2 mb-1">
         <Users className="w-4 h-4 text-cyan-600" />
         <h3 className="font-semibold text-gray-800">Equipo del caso</h3>

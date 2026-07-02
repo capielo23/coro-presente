@@ -11,6 +11,7 @@ import AgregarSeguimiento from '@/components/casos/AgregarSeguimiento'
 import BitacoraSeguimiento from '@/components/casos/BitacoraSeguimiento'
 import EquipoCaso from '@/components/casos/EquipoCaso'
 import EliminarCaso from '@/components/casos/EliminarCaso'
+import GestionColaboradores from '@/components/casos/GestionColaboradores'
 import IntegranteCard from '@/components/casos/IntegranteCard'
 import Link from 'next/link'
 import { ArrowLeft, ClipboardList, Pencil } from 'lucide-react'
@@ -115,6 +116,9 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
 
   const colaboradoresNombres: string[] = (colaboradoresLista ?? [])
     .map((c: any) => c.voluntario?.nombre_completo).filter(Boolean)
+  const colaboradoresConId: { id: string; nombre: string }[] = (colaboradoresLista ?? [])
+    .filter((c: any) => c.voluntario?.id && c.voluntario?.nombre_completo)
+    .map((c: any) => ({ id: c.voluntario.id, nombre: c.voluntario.nombre_completo }))
   const entregasPorNec: Record<string, any[]> = {}
   ;(entregasCaso ?? []).forEach((e: any) => { (entregasPorNec[e.necesidad_id] ??= []).push(e) })
   const entregadores: string[] = Array.from(
@@ -276,12 +280,21 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
       </div>
 
       {/* Equipo del caso */}
-      <EquipoCaso
-        responsable={responsableNombre}
-        registrador={registradorNombre}
-        colaboradores={colaboradoresNombres}
-        entregadores={entregadores}
-      />
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+        <EquipoCaso
+          responsable={responsableNombre}
+          registrador={registradorNombre}
+          colaboradores={colaboradoresNombres}
+          entregadores={entregadores}
+        />
+        {esAdmin && (
+          <GestionColaboradores
+            casoId={caso.id}
+            colaboradores={colaboradoresConId}
+            voluntariosDisponibles={(todosVoluntarios ?? []).filter(v => v.id !== caso.tutor_id)}
+          />
+        )}
+      </div>
 
       {/* Integrantes */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
