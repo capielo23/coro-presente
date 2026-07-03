@@ -6,13 +6,14 @@ export async function GET(request: NextRequest) {
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as 'recovery' | 'signup' | 'magiclink' | null
   const code = searchParams.get('code')
+  const next = searchParams.get('next') ?? '/dashboard'
 
   const supabase = createClient()
 
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })
     if (!error) {
-      const redirectTo = type === 'recovery' ? '/cambiar-contrasena' : '/dashboard'
+      const redirectTo = type === 'recovery' ? '/cambiar-contrasena' : next
       return NextResponse.redirect(new URL(redirectTo, request.url))
     }
   }
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL(next, request.url))
     }
   }
 

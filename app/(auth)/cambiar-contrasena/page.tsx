@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { KeyRound, CheckCircle2, Loader2 } from 'lucide-react'
+import { KeyRound, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react'
 
 const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm text-gray-800 bg-white transition'
 
@@ -11,6 +11,7 @@ export default function CambiarContrasenaPage() {
   const router = useRouter()
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [verPassword, setVerPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [exito, setExito] = useState(false)
@@ -18,6 +19,11 @@ export default function CambiarContrasenaPage() {
 
   useEffect(() => {
     const supabase = createClient()
+    // Con flujo PKCE la sesión ya existe cuando la página carga (creada server-side en el callback)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setListo(true)
+    })
+    // Fallback para flujo implícito (envía PASSWORD_RECOVERY via hash fragment)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setListo(true)
     })
@@ -77,26 +83,39 @@ export default function CambiarContrasenaPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
-          <input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-            minLength={8}
-            placeholder="Mínimo 8 caracteres"
-            className={inputCls}
-          />
+          <div className="relative">
+            <input
+              type={verPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={8}
+              placeholder="Mínimo 8 caracteres"
+              className={inputCls + ' pr-10'}
+            />
+            <button
+              type="button"
+              onClick={() => setVerPassword(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+              tabIndex={-1}
+              aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            >
+              {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña</label>
-          <input
-            type="password"
-            value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            required
-            placeholder="Repite la contraseña"
-            className={inputCls}
-          />
+          <div className="relative">
+            <input
+              type={verPassword ? 'text' : 'password'}
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              required
+              placeholder="Repite la contraseña"
+              className={inputCls + ' pr-10'}
+            />
+          </div>
         </div>
 
         {error && (
