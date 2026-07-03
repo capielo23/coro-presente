@@ -37,8 +37,8 @@ function fmtFecha(iso?: string) {
 const selectCls = 'text-xs px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500'
 
 export default function NecesidadGestion({
-  nec, puedeEditar, equipo = [], entregas = [], casoCreatedAt, personas = [],
-}: { nec: any; puedeEditar: boolean; equipo?: Voluntario[]; entregas?: Entrega[]; casoCreatedAt?: string; personas?: Persona[] }) {
+  nec, puedeEditar, puedeMarcarEntregas = false, equipo = [], entregas = [], casoCreatedAt, personas = [],
+}: { nec: any; puedeEditar: boolean; puedeMarcarEntregas?: boolean; equipo?: Voluntario[]; entregas?: Entrega[]; casoCreatedAt?: string; personas?: Persona[] }) {
   const router = useRouter()
   const [estado, setEstado] = useState<string>(nec.estado)
   const [data, setData] = useState<ItemsData | null>(nec.items_entrega?.items?.length ? (nec.items_entrega as ItemsData) : null)
@@ -334,9 +334,9 @@ export default function NecesidadGestion({
                         <div className="flex items-start gap-2">
                           <button
                             type="button"
-                            onClick={() => { if (!puedeEditar || loading) return; if (item.entregado) { desmarcarItem(item) } else { setEntregandoKey(enProceso ? null : keyOf(item)) } }}
-                            disabled={!puedeEditar || loading}
-                            className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition ${item.entregado ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'} ${puedeEditar ? 'cursor-pointer hover:border-green-500' : 'cursor-default'} disabled:opacity-60`}
+                            onClick={() => { if (!puedeMarcarEntregas || loading) return; if (item.entregado) { desmarcarItem(item) } else { setEntregandoKey(enProceso ? null : keyOf(item)) } }}
+                            disabled={!puedeMarcarEntregas || loading}
+                            className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition ${item.entregado ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'} ${puedeMarcarEntregas ? 'cursor-pointer hover:border-green-500' : 'cursor-default'} disabled:opacity-60`}
                             aria-label={item.entregado ? `Desmarcar ${item.texto}` : `Marcar ${item.texto} como entregado`}
                           >
                             {item.entregado && <Check className="w-3 h-3 text-white" />}
@@ -353,9 +353,9 @@ export default function NecesidadGestion({
                             )}
                             {item.nota && <p className="text-[11px] text-gray-500 italic">Nota: {item.nota}</p>}
                           </div>
-                          {puedeEditar && (
+                          {(puedeEditar || puedeMarcarEntregas) && (
                             <div className="flex items-center gap-1 shrink-0">
-                              {item.entregado && (
+                              {item.entregado && puedeMarcarEntregas && (
                                 <button type="button" onClick={() => desmarcarItem(item)} disabled={loading}
                                   className="text-gray-300 hover:text-amber-500 transition" aria-label="Deshacer entrega">
                                   <Undo2 className="w-3.5 h-3.5" />
@@ -405,7 +405,7 @@ export default function NecesidadGestion({
                           </div>
                         )}
                         {/* Confirmación de entrega: solo quién entregó */}
-                        {enProceso && puedeEditar && (
+                        {enProceso && puedeMarcarEntregas && (
                           <div className="ml-6 mt-1 bg-cyan-50 border border-cyan-100 rounded-lg p-2">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
@@ -451,13 +451,13 @@ export default function NecesidadGestion({
               ))}
             </div>
           )}
-          {puedeEditar && !periodoAbierto && (
+          {puedeMarcarEntregas && !periodoAbierto && (
             <button onClick={() => setPeriodoAbierto(true)}
               className="flex items-center gap-1 text-xs text-purple-700 border border-purple-200 bg-purple-50 px-2.5 py-1 rounded-lg hover:bg-purple-100 transition btn-press">
               <PackageCheck className="w-3.5 h-3.5" /> Registrar entrega del período
             </button>
           )}
-          {puedeEditar && periodoAbierto && (
+          {puedeMarcarEntregas && periodoAbierto && (
             <div className="flex flex-wrap items-center gap-2 bg-purple-50 border border-purple-100 rounded-lg p-2">
               <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
               {SelectorDeliverer}
@@ -480,29 +480,29 @@ export default function NecesidadGestion({
       )}
 
       {/* Acciones modo sin ítems */}
-      {!tieneItems && !esRecurrente && puedeEditar && (
+      {!tieneItems && !esRecurrente && (puedeEditar || puedeMarcarEntregas) && (
         <div className="mt-2.5 space-y-2">
           <div className="flex flex-wrap gap-2">
-            {!detallarAbierto && (
+            {puedeEditar && !detallarAbierto && (
               <button onClick={abrirDetalle} disabled={loading}
                 className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
                 <ListChecks className="w-3.5 h-3.5" /> Detallar artículos
               </button>
             )}
-            {estado === 'pendiente' && (
+            {puedeMarcarEntregas && estado === 'pendiente' && (
               <button onClick={() => patchEstado('en_gestion')} disabled={loading}
                 className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
                 <ClipboardEdit className="w-3.5 h-3.5" /> Tomar en gestión
               </button>
             )}
-            {(estado === 'en_gestion' || estado === 'entregado' || estado === 'parcial') && (
+            {puedeMarcarEntregas && (estado === 'en_gestion' || estado === 'entregado' || estado === 'parcial') && (
               <button onClick={() => patchEstado('pendiente')} disabled={loading}
                 className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition btn-press">
                 <RotateCcw className="w-3.5 h-3.5" /> Devolver a pendiente
               </button>
             )}
           </div>
-          {!detallarAbierto && (
+          {puedeEditar && !detallarAbierto && (
             <p className="text-[11px] text-gray-400 flex items-center gap-1">
               <ListChecks className="w-3 h-3 shrink-0" />
               Agrega los artículos específicos con &ldquo;Detallar artículos&rdquo; para poder marcar cada entrega.

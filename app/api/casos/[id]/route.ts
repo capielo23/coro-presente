@@ -49,6 +49,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (casoActual?.tutor_id) {
       return NextResponse.json({ error: 'Este caso ya tiene tutor asignado' }, { status: 409 })
     }
+    // Límite: máximo 3 casos activos como tutor
+    const { count: yaComoTutor } = await admin
+      .from('casos').select('*', { count: 'exact', head: true })
+      .eq('tutor_id', user.id).neq('estado', 'cerrado')
+    if ((yaComoTutor ?? 0) >= 3) {
+      return NextResponse.json(
+        { error: 'Has alcanzado el límite de 3 casos activos como tutor. Libera uno antes de tomar otro.' },
+        { status: 409 }
+      )
+    }
     const { data, error } = await admin
       .from('casos').update({ tutor_id: user.id }).eq('id', params.id).select().single()
     if (error) return NextResponse.json({ error: 'Error al tomar tutoría' }, { status: 500 })
@@ -118,7 +128,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
 // Eliminar un caso completo (caso de prueba o que ya no requiere seguimiento).
 // Borra en cascada integrantes, necesidades, entregas, seguimientos e historial.
-// Solo el tutor, quien lo registró, o un coordinador/admin pueden eliminarlo.
+// Solo coordinadores/admin pueden eliminarlo.
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -132,14 +142,13 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
   }
   const esAdmin = ['admin', 'coordinador'].includes(voluntario.rol ?? '')
 
-  const { data: caso } = await admin
-    .from('casos').select('tutor_id, registrado_por').eq('id', params.id).single()
-  if (!caso) return NextResponse.json({ error: 'Caso no encontrado' }, { status: 404 })
-
-  const autorizado = esAdmin || caso.tutor_id === user.id || caso.registrado_por === user.id
-  if (!autorizado) {
-    return NextResponse.json({ error: 'No tienes permiso para eliminar este caso' }, { status: 403 })
+  if (!esAdmin) {
+    return NextResponse.json({ error: 'Solo coordinadores pueden eliminar casos' }, { status: 403 })
   }
+
+  const { data: caso } = await admin
+    .from('casos').select('id').eq('id', params.id).single()
+  if (!caso) return NextResponse.json({ error: 'Caso no encontrado' }, { status: 404 })
 
   const { error } = await admin.from('casos').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: 'Error al eliminar el caso' }, { status: 500 })

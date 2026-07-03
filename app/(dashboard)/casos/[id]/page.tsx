@@ -71,7 +71,8 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
   const esAdmin = ['admin', 'coordinador'].includes(miPerfil?.rol ?? '')
   const esTutor = caso.tutor_id === user!.id
   const esColaborador = !!colaboracion
-  const puedeEditar = esAdmin || esTutor || caso.registrado_por === user!.id || esColaborador
+  const puedeEditar = esAdmin
+  const puedeMarcarEntregas = esAdmin || esTutor
 
   // Datos de coincidencia para el modal de compromiso (al tomar el seguimiento)
   const necesidadesAbiertas: any[] = (caso.necesidades ?? []).filter((n: any) => n.estado !== 'entregado')
@@ -321,7 +322,7 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
           <h3 className="font-semibold text-gray-800">
             Necesidades ({caso.necesidades?.length ?? 0})
           </h3>
-          <AgregarNecesidad casoId={caso.id} personas={caso.personas ?? []} />
+          {esAdmin && <AgregarNecesidad casoId={caso.id} personas={caso.personas ?? []} />}
         </div>
         <p className="text-xs text-gray-400 mb-4">
           Registra aquí qué necesita esta familia: alimentos, medicamentos, ropa, traslado, etc. Marca cada ítem como entregado cuando se resuelva.
@@ -334,6 +335,7 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
                 key={nec.id}
                 nec={nec}
                 puedeEditar={puedeEditar}
+                puedeMarcarEntregas={puedeMarcarEntregas}
                 equipo={equipoCaso}
                 entregas={entregasPorNec[nec.id] ?? []}
                 casoCreatedAt={caso.created_at}

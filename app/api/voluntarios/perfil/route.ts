@@ -24,6 +24,12 @@ export async function PATCH(req: Request) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
+  const admin = createAdminClient()
+  const { data: volCheck } = await admin.from('voluntarios').select('estado').eq('id', user.id).single()
+  if (!volCheck || volCheck.estado !== 'aprobado') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
   let body: Record<string, unknown>
   try { body = await req.json() } catch {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
@@ -84,8 +90,6 @@ export async function PATCH(req: Request) {
   if (descripcion_ayuda !== undefined) extUpdate.descripcion_ayuda = (descripcion_ayuda as string) || null
 
   const fullUpdate = { ...baseUpdate, ...extUpdate }
-
-  const admin = createAdminClient()
 
   // Intento 1: actualizar todos los campos (incluyendo los de migración 002)
   const { error } = await admin.from('voluntarios').update(fullUpdate).eq('id', user.id)

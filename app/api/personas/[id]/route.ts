@@ -14,18 +14,14 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     .from('personas').select('caso_id').eq('id', params.id).single()
   if (!persona) return NextResponse.json({ error: 'Persona no encontrada' }, { status: 404 })
 
-  // Verificar que el usuario tiene permiso sobre ese caso
-  const [{ data: caso }, { data: voluntario }] = await Promise.all([
-    admin.from('casos').select('tutor_id, registrado_por').eq('id', persona.caso_id).single(),
-    admin.from('voluntarios').select('rol').eq('id', user.id).single(),
-  ])
-
+  // Solo coordinadores/admin pueden editar datos de integrantes
+  const { data: voluntario } = await admin.from('voluntarios').select('estado, rol').eq('id', user.id).single()
+  if (!voluntario || voluntario.estado !== 'aprobado') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
   const esAdmin = ['admin', 'coordinador'].includes(voluntario?.rol ?? '')
-  const esTutor = caso?.tutor_id === user.id
-  const esRegistrador = caso?.registrado_por === user.id
-
-  if (!esAdmin && !esTutor && !esRegistrador) {
-    return NextResponse.json({ error: 'No tienes permiso para editar este integrante' }, { status: 403 })
+  if (!esAdmin) {
+    return NextResponse.json({ error: 'Solo coordinadores pueden editar los datos de los integrantes' }, { status: 403 })
   }
 
   const body = await request.json()

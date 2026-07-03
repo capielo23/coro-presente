@@ -25,6 +25,12 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
+  const admin = createAdminClient()
+  const { data: volCheck } = await admin.from('voluntarios').select('estado').eq('id', user.id).single()
+  if (!volCheck || volCheck.estado !== 'aprobado') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
   let formData: FormData
   try {
     formData = await request.formData()
@@ -51,8 +57,6 @@ export async function POST(request: NextRequest) {
     console.error('[avatar] Error al leer el archivo:', e)
     return NextResponse.json({ error: 'No se pudo leer el archivo' }, { status: 500 })
   }
-
-  const admin = createAdminClient()
 
   // Garantizar que el bucket exista antes de subir
   await garantizarBucket(admin)
@@ -115,6 +119,10 @@ export async function DELETE() {
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
   const admin = createAdminClient()
+  const { data: volCheck } = await admin.from('voluntarios').select('estado').eq('id', user.id).single()
+  if (!volCheck || volCheck.estado !== 'aprobado') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
 
   const { data: voluntario } = await admin
     .from('voluntarios')

@@ -10,6 +10,12 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const admin = createAdminClient()
+  const { data: volCheck } = await admin.from('voluntarios').select('estado').eq('id', user.id).single()
+  if (!volCheck || volCheck.estado !== 'aprobado') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
   const formData = await request.formData()
   const file = formData.get('file') as File | null
 
@@ -30,7 +36,6 @@ export async function POST(request: NextRequest) {
   const path = `personas/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
-  const admin = createAdminClient()
   const { error } = await admin.storage
     .from(BUCKET)
     .upload(path, buffer, { contentType: file.type, upsert: false })
