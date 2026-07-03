@@ -26,6 +26,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/registro')
   const isDashboard = pathname.startsWith('/dashboard') || pathname.startsWith('/casos') || pathname.startsWith('/admin')
+  const isCambiarContrasena = pathname.startsWith('/cambiar-contrasena')
 
   if (!user && isDashboard) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -33,6 +34,24 @@ export async function middleware(request: NextRequest) {
 
   if (user && isAuthPage) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+
+  // Si el usuario tiene marcado que debe cambiar su contraseña (clave temporal),
+  // redirigir a /cambiar-contrasena desde cualquier ruta de dashboard
+  if (user && isDashboard && !isCambiarContrasena) {
+    const { data: perfil } = await supabase
+      .from('voluntarios')
+      .select('debe_cambiar_contrasena')
+      .eq('id', user.id)
+      .single()
+
+    if (perfil?.debe_cambiar_contrasena) {
+      const url = new URL('/cambiar-contrasena', request.url)
+      url.searchParams.set('temporal', '1')
+      const redirect = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach(c => redirect.cookies.set(c.name, c.value))
+      return redirect
+    }
   }
 
   return supabaseResponse

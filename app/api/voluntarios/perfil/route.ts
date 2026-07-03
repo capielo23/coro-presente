@@ -35,7 +35,13 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
   }
 
-  const { nombre_completo, cedula, telefono, areas_ayuda, especialidades, zona_cobertura, disponibilidad, descripcion_ayuda } = body
+  const { nombre_completo, cedula, telefono, areas_ayuda, especialidades, zona_cobertura, disponibilidad, descripcion_ayuda, debe_cambiar_contrasena } = body
+
+  // Limpiar marca de contraseña temporal (la página /cambiar-contrasena la envía como false)
+  if (debe_cambiar_contrasena === false) {
+    await admin.from('voluntarios').update({ debe_cambiar_contrasena: false }).eq('id', user.id)
+    return NextResponse.json({ ok: true })
+  }
 
   // Validar campos de identificación
   if (nombre_completo !== undefined) {
