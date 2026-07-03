@@ -42,14 +42,18 @@ function CambiarContrasenaInner() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error: updateError } = await supabase.auth.updateUser({ password })
+    // Limpiar flag en user_metadata a la vez que se cambia la contraseña
+    const { error: updateError } = await supabase.auth.updateUser({
+      password,
+      ...(esClaveTemporal ? { data: { debe_cambiar_contrasena: false } } : {}),
+    })
     if (updateError) {
       setError('No se pudo cambiar la contraseña. Intenta de nuevo.')
       setLoading(false)
       return
     }
 
-    // Si era clave temporal, limpiar la marca en el perfil
+    // Limpiar también en la tabla voluntarios (respaldo)
     if (esClaveTemporal) {
       await fetch('/api/voluntarios/perfil', {
         method: 'PATCH',
