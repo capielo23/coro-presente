@@ -30,6 +30,7 @@ export default function VoluntariosAdminPage() {
   const [yo, setYo] = useState<YoPerfil | null>(null)
   const [loading, setLoading] = useState(true)
   const [busqueda, setBusqueda] = useState('')
+  const [filtroRol, setFiltroRol] = useState<'todos' | 'coordinador' | 'voluntario'>('todos')
   const [modalOpen, setModalOpen] = useState(false)
 
   async function cargar() {
@@ -62,9 +63,17 @@ export default function VoluntariosAdminPage() {
 
   useEffect(() => { cargar() }, [])
 
-  const filtrados = busqueda
-    ? voluntarios.filter(v => v.nombre_completo.toLowerCase().includes(busqueda.toLowerCase()))
-    : voluntarios
+  const filtrados = voluntarios.filter(v => {
+    const q = busqueda.toLowerCase()
+    const coincideBusqueda = !q
+      || v.nombre_completo.toLowerCase().includes(q)
+      || ((v as any).email ?? '').toLowerCase().includes(q)
+      || (v.cedula ?? '').toLowerCase().includes(q)
+    const coincideRol = filtroRol === 'todos'
+      || (filtroRol === 'coordinador' && (v as any).rol === 'coordinador')
+      || (filtroRol === 'voluntario'  && (v as any).rol === 'voluntario')
+    return coincideBusqueda && coincideRol
+  })
 
   const esAdmin = yo?.rol === 'admin'
   const puedeAprobarCoords = yo?.puedeAprobarCoordinadores ?? false
@@ -183,11 +192,26 @@ export default function VoluntariosAdminPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <input
             type="search"
-            placeholder="Buscar por nombre..."
+            placeholder="Buscar por nombre, correo o cédula..."
             value={busqueda}
             onChange={e => setBusqueda(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-64"
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full sm:w-72"
           />
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
+            {(['todos', 'coordinador', 'voluntario'] as const).map(r => (
+              <button
+                key={r}
+                onClick={() => setFiltroRol(r)}
+                className={`px-3 py-2 transition ${
+                  filtroRol === r
+                    ? 'bg-cyan-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {r === 'todos' ? 'Todos' : r === 'coordinador' ? 'Coordinadores' : 'Voluntarios'}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => setModalOpen(true)}
             className="flex items-center gap-2 bg-[#0891B2] hover:bg-[#0C4A6E] text-white px-4 py-2 rounded-xl text-sm font-semibold transition btn-press"
@@ -269,9 +293,10 @@ export default function VoluntariosAdminPage() {
             <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
               <tr>
                 <th className="px-4 py-3 text-left">Nombre</th>
+                <th className="px-4 py-3 text-left hidden md:table-cell">Correo</th>
                 <th className="px-4 py-3 text-left hidden sm:table-cell">Rol</th>
-                <th className="px-4 py-3 text-left hidden sm:table-cell">Teléfono</th>
-                <th className="px-4 py-3 text-left">Áreas</th>
+                <th className="px-4 py-3 text-left hidden lg:table-cell">Teléfono</th>
+                <th className="px-4 py-3 text-left hidden lg:table-cell">Áreas</th>
                 <th className="px-4 py-3 text-left hidden sm:table-cell">Estado</th>
                 <th className="px-4 py-3 text-left">Acciones</th>
               </tr>
@@ -287,6 +312,9 @@ export default function VoluntariosAdminPage() {
                       <p className="font-medium text-gray-900">{v.nombre_completo}</p>
                       {v.cedula && <p className="text-xs text-gray-400">CI: {v.cedula}</p>}
                     </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <p className="text-sm text-gray-600 break-all">{(v as any).email ?? '—'}</p>
+                    </td>
                     <td className="px-4 py-3 hidden sm:table-cell">
                       <div className="flex flex-col gap-1">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium w-fit ${rolInfo.color}`}>
@@ -300,8 +328,8 @@ export default function VoluntariosAdminPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{v.telefono}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">{v.telefono}</td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
                       {((v as any).areas_ayuda?.length ?? 0) > 0 ? (
                         <div className="flex flex-wrap gap-1">
                           {(v as any).areas_ayuda.slice(0, 2).map((area: string) => (
