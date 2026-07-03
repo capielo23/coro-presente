@@ -25,6 +25,18 @@ export async function POST(request: NextRequest) {
   const { nombre_completo, email, password, cedula, telefono, areas_ayuda, areas_nuevas, descripcion_ayuda, solicita_rol } = parsed.data
   const supabase = createAdminClient()
 
+  // Verificar cédula duplicada ANTES de crear el usuario en Auth
+  if (cedula) {
+    const { data: cedulaExistente } = await supabase
+      .from('voluntarios')
+      .select('id')
+      .eq('cedula', cedula)
+      .maybeSingle()
+    if (cedulaExistente) {
+      return NextResponse.json({ error: 'Esta cédula ya está registrada en el sistema' }, { status: 409 })
+    }
+  }
+
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,
     password,
@@ -32,7 +44,14 @@ export async function POST(request: NextRequest) {
   })
 
   if (authError) {
-    if (authError.message.includes('already registered')) {
+    console.error('[registro] error al crear usuario en Auth:', authError.status, authError.message, (authError as any).code)
+    const esEmailDuplicado =
+      authError.status === 422 ||
+      authError.message?.toLowerCase().includes('already registered') ||
+      authError.message?.toLowerCase().includes('already exists') ||
+      authError.message?.toLowerCase().includes('user already') ||
+      (authError as any).code === 'email_exists'
+    if (esEmailDuplicado) {
       return NextResponse.json({ error: 'Este correo ya está registrado' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Error al crear cuenta' }, { status: 500 })
@@ -51,7 +70,11 @@ export async function POST(request: NextRequest) {
 
   if (profileError) {
     await supabase.auth.admin.deleteUser(authData.user.id)
-    return NextResponse.json({ error: 'Error al guardar perfil' }, { status: 500 })
+    const esCedulaDup = profileError.code === '23505' && profileError.message.includes('cedula')
+    return NextResponse.json(
+      { error: esCedulaDup ? 'Esta cédula ya está registrada en el sistema' : 'Error al guardar perfil' },
+      { status: 409 }
+    )
   }
 
   // Agregar áreas nuevas al catálogo para que futuros voluntarios las vean
