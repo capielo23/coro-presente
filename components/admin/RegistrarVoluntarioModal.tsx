@@ -4,6 +4,7 @@ import {
   UserPlus, X, CheckCircle2, Copy, Check,
   Eye, EyeOff, AlertTriangle, Plus,
 } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 function CampoError({ msg }: { msg?: string }) {
   if (!msg) return null
@@ -40,6 +41,7 @@ interface Credenciales {
 }
 
 export default function RegistrarVoluntarioModal({ open, onClose, onRegistrado }: Props) {
+  const toast = useToast()
   const [fase, setFase] = useState<'form' | 'exito'>('form')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -154,8 +156,14 @@ export default function RegistrarVoluntarioModal({ open, onClose, onRegistrado }
     const data = await res.json()
     setLoading(false)
 
-    if (!res.ok) { setError(data.error || 'Error al registrar'); return }
+    if (!res.ok) {
+      const msg = data.error || 'Error al registrar'
+      setError(msg)
+      toast.error(msg)
+      return
+    }
 
+    toast.success(`${data.nombre_completo} registrado y aprobado`)
     setCredenciales({ nombre_completo: data.nombre_completo, email: data.email, tempPassword: data.tempPassword })
     setFase('exito')
   }
