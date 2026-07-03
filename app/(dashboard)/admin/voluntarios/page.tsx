@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import {
   CheckCircle2, XCircle, Clock, Settings2,
-  Users, UserCheck, UserPlus, ShieldCheck, ShieldOff,
+  Users, UserCheck, UserPlus, ShieldCheck, ShieldOff, KeyRound, Copy, X,
 } from 'lucide-react'
 import { Voluntario } from '@/lib/types'
 import RegistrarVoluntarioModal from '@/components/admin/RegistrarVoluntarioModal'
@@ -32,6 +32,9 @@ export default function VoluntariosAdminPage() {
   const [busqueda, setBusqueda] = useState('')
   const [filtroRol, setFiltroRol] = useState<'todos' | 'coordinador' | 'voluntario'>('todos')
   const [modalOpen, setModalOpen] = useState(false)
+  const [resetModal, setResetModal] = useState<{ nombre: string; clave: string } | null>(null)
+  const [resetLoading, setResetLoading] = useState<string | null>(null)
+  const [copiado, setCopiado] = useState(false)
 
   async function cargar() {
     const res = await fetch('/api/admin/voluntarios')
@@ -50,6 +53,21 @@ export default function VoluntariosAdminPage() {
       body: JSON.stringify({ id, estado, ...(rol ? { rol } : {}) }),
     })
     cargar()
+  }
+
+  async function restablecerContrasena(id: string) {
+    setResetLoading(id)
+    const res = await fetch('/api/admin/voluntarios', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    const json = await res.json()
+    setResetLoading(null)
+    if (res.ok) {
+      setResetModal({ nombre: json.nombre, clave: json.tempPassword })
+      setCopiado(false)
+    }
   }
 
   async function togglePermisoEspecial(id: string, valor: boolean) {
@@ -368,6 +386,17 @@ export default function VoluntariosAdminPage() {
                             Re-aprobar
                           </button>
                         )}
+                        {/* Restablecer contraseña: admin o coordinador con permiso especial */}
+                        {puedeAprobarCoords && v.estado === 'aprobado' && (
+                          <button
+                            onClick={() => restablecerContrasena(v.id)}
+                            disabled={resetLoading === v.id}
+                            className="text-xs text-cyan-600 hover:underline text-left flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <KeyRound className="w-3 h-3" />
+                            {resetLoading === v.id ? 'Generando...' : 'Restablecer clave'}
+                          </button>
+                        )}
                         {/* Permiso especial: solo admin puede otorgarlo/revocarlo a coordinadores */}
                         {esAdmin && esCoord && v.estado === 'aprobado' && (
                           <button
@@ -396,6 +425,45 @@ export default function VoluntariosAdminPage() {
         onClose={() => setModalOpen(false)}
         onRegistrado={() => { setModalOpen(false); cargar() }}
       />
+
+      {/* Modal clave temporal */}
+      {resetModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-5 h-5 text-cyan-600" />
+                <h3 className="font-semibold text-gray-900">Contraseña restablecida</h3>
+              </div>
+              <button onClick={() => setResetModal(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Comunícale esta contraseña temporal a <strong>{resetModal.nombre}</strong> por WhatsApp o teléfono. Podrá cambiarla desde su perfil.
+            </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-3 mb-4">
+              <span className="font-mono text-lg font-bold text-gray-900 tracking-wider">{resetModal.clave}</span>
+              <button
+                onClick={() => { navigator.clipboard.writeText(resetModal.clave); setCopiado(true) }}
+                className="flex items-center gap-1.5 text-xs text-cyan-600 hover:text-cyan-800 transition"
+              >
+                <Copy className="w-4 h-4" />
+                {copiado ? '¡Copiado!' : 'Copiar'}
+              </button>
+            </div>
+            <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Esta clave solo se muestra una vez. Una vez cerres este aviso no podrás verla de nuevo.
+            </p>
+            <button
+              onClick={() => setResetModal(null)}
+              className="mt-4 w-full bg-gray-900 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-gray-700 transition"
+            >
+              Entendido, ya la anoté
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

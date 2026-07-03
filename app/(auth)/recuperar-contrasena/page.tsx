@@ -13,8 +13,10 @@ export default function RecuperarContrasenaPage() {
     e.preventDefault()
     setLoading(true)
     const supabase = createClient()
+    // Usar siempre el dominio de producción para que coincida con Supabase Redirect URLs
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin
     await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/cambiar-contrasena`,
+      redirectTo: `${origin}/auth/callback?next=/cambiar-contrasena`,
     })
     setEnviado(true)
     setLoading(false)
