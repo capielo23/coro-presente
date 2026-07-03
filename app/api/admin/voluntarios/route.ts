@@ -38,13 +38,21 @@ export async function GET() {
   if (!gestor) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
 
   const admin = createAdminClient()
-  const { data } = await admin
-    .from('voluntarios')
-    .select('*')
-    .order('created_at', { ascending: false })
+
+  const [{ data: voluntarios }, { data: authData }] = await Promise.all([
+    admin.from('voluntarios').select('*').order('created_at', { ascending: false }),
+    admin.auth.admin.listUsers({ perPage: 1000 }),
+  ])
+
+  // Inyectar email desde auth.users (fuente de verdad para credenciales)
+  const emailMap = new Map(authData?.users.map(u => [u.id, u.email]) ?? [])
+  const lista = (voluntarios ?? []).map(v => ({
+    ...v,
+    email: emailMap.get(v.id) ?? null,
+  }))
 
   return NextResponse.json({
-    lista: data ?? [],
+    lista,
     yo: {
       id: gestor.userId,
       rol: gestor.rol,
@@ -133,6 +141,36 @@ const registroSchema = z.object({
 })
 
 const CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+
+function generarClaveTemporal(len = 10) {
+  return Array.from({ length: len }, () => CHARS[Math.floor(Math.random() * CHARS.length)]).join('')
+}
+
+// PUT — restablecer contraseña de un voluntario (solo admin o coordinador con permiso especial)
+export async function PUT(request: NextRequest) {
+  const gestor = await verificarGestor()
+  if (!gestor) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+
+  if (!gestor.puedeAprobarCoordinadores) {
+    return NextResponse.json({ error: 'Solo el administrador o coordinadores con permiso especial pueden restablecer contraseñas' }, { status: 403 })
+  }
+
+  const { id } = await request.json()
+  if (!id) return NextResponse.json({ error: 'ID requerido' }, { status: 400 })
+
+  const admin = createAdminClient()
+
+  const { data: voluntario } = await admin.from('voluntarios').select('nombre_completo, estado').eq('id', id).single()
+  if (!voluntario) return NextResponse.json({ error: 'Voluntario no encontrado' }, { status: 404 })
+  if (voluntario.estado !== 'aprobado') return NextResponse.json({ error: 'El voluntario no está aprobado' }, { status: 400 })
+
+  const tempPassword = generarClaveTemporal()
+  const { error } = await admin.auth.admin.updateUserById(id, { password: tempPassword })
+
+  if (error) return NextResponse.json({ error: 'No se pudo restablecer la contraseña' }, { status: 500 })
+
+  return NextResponse.json({ ok: true, tempPassword, nombre: voluntario.nombre_completo })
+}
 
 export async function POST(request: NextRequest) {
   const gestor = await verificarGestor()
