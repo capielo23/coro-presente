@@ -1,14 +1,19 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { KeyRound, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react'
+import { KeyRound, CheckCircle2, Loader2, Eye, EyeOff, ShieldAlert } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm text-gray-800 bg-white transition'
 
 export default function CambiarContrasenaPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const toast = useToast()
+  const esClaveTemporal = searchParams.get('temporal') === '1'
+
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [verPassword, setVerPassword] = useState(false)
@@ -19,11 +24,9 @@ export default function CambiarContrasenaPage() {
 
   useEffect(() => {
     const supabase = createClient()
-    // Con flujo PKCE la sesión ya existe cuando la página carga (creada server-side en el callback)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setListo(true)
     })
-    // Fallback para flujo implícito (envía PASSWORD_RECOVERY via hash fragment)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setListo(true)
     })
@@ -37,14 +40,25 @@ export default function CambiarContrasenaPage() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.updateUser({ password })
-    if (error) {
-      setError('No se pudo cambiar la contraseña. El enlace puede haber expirado.')
+    const { error: updateError } = await supabase.auth.updateUser({ password })
+    if (updateError) {
+      setError('No se pudo cambiar la contraseña. Intenta de nuevo.')
       setLoading(false)
       return
     }
+
+    // Si era clave temporal, limpiar la marca en el perfil
+    if (esClaveTemporal) {
+      await fetch('/api/voluntarios/perfil', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ debe_cambiar_contrasena: false }),
+      })
+    }
+
+    toast.success('Contraseña actualizada correctamente')
     setExito(true)
-    setTimeout(() => router.push('/dashboard'), 2000)
+    setTimeout(() => router.push('/dashboard'), 2500)
   }
 
   if (exito) {
@@ -63,7 +77,7 @@ export default function CambiarContrasenaPage() {
     return (
       <div className="text-center py-8">
         <Loader2 className="w-8 h-8 text-cyan-500 animate-spin mx-auto mb-4" />
-        <p className="text-gray-500 text-sm">Verificando enlace de recuperación...</p>
+        <p className="text-gray-500 text-sm">Verificando sesión...</p>
         <p className="text-xs text-gray-400 mt-2">
           Si llegaste aquí por error,{' '}
           <Link href="/login" className="text-cyan-600 hover:underline">vuelve al inicio de sesión</Link>.
@@ -76,9 +90,21 @@ export default function CambiarContrasenaPage() {
     <>
       <div className="flex items-center gap-2 mb-1">
         <KeyRound className="w-5 h-5 text-cyan-600" />
-        <h2 className="text-xl font-semibold text-gray-800">Nueva contraseña</h2>
+        <h2 className="text-xl font-semibold text-gray-800">
+          {esClaveTemporal ? 'Crea tu contraseña' : 'Nueva contraseña'}
+        </h2>
       </div>
-      <p className="text-sm text-gray-400 mb-6">Elige una contraseña segura para tu cuenta.</p>
+
+      {esClaveTemporal ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 flex items-start gap-2.5 mb-5">
+          <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            Estás usando una <strong>contraseña temporal</strong>. Por seguridad, crea una contraseña propia ahora para que tu cuenta quede protegida.
+          </p>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-400 mb-6">Elige una contraseña segura para tu cuenta.</p>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
@@ -131,7 +157,7 @@ export default function CambiarContrasenaPage() {
         >
           {loading
             ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-            : 'Cambiar contraseña'}
+            : esClaveTemporal ? 'Establecer mi contraseña' : 'Cambiar contraseña'}
         </button>
       </form>
     </>

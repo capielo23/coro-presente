@@ -169,6 +169,9 @@ export async function PUT(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: 'No se pudo restablecer la contraseña' }, { status: 500 })
 
+  // Marcar que el usuario debe cambiar la clave al próximo inicio de sesión
+  await admin.from('voluntarios').update({ debe_cambiar_contrasena: true }).eq('id', id)
+
   return NextResponse.json({ ok: true, tempPassword, nombre: voluntario.nombre_completo })
 }
 

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { Voluntario } from '@/lib/types'
 import RegistrarVoluntarioModal from '@/components/admin/RegistrarVoluntarioModal'
+import { useToast } from '@/components/ui/ToastContext'
 
 const ESTADO_COLORS: Record<string, string> = {
   pendiente: 'bg-amber-100 text-amber-800',
@@ -26,6 +27,7 @@ interface YoPerfil {
 }
 
 export default function VoluntariosAdminPage() {
+  const toast = useToast()
   const [voluntarios, setVoluntarios] = useState<Voluntario[]>([])
   const [yo, setYo] = useState<YoPerfil | null>(null)
   const [loading, setLoading] = useState(true)
@@ -47,11 +49,21 @@ export default function VoluntariosAdminPage() {
   }
 
   async function cambiarEstadoYRol(id: string, estado: string, rol?: string) {
-    await fetch('/api/admin/voluntarios', {
+    const res = await fetch('/api/admin/voluntarios', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, estado, ...(rol ? { rol } : {}) }),
     })
+    if (res.ok) {
+      const mensajes: Record<string, string> = {
+        aprobado: rol === 'coordinador' ? 'Aprobado como coordinador' : 'Voluntario aprobado',
+        rechazado: 'Acceso revocado',
+        pendiente: 'Marcado como pendiente',
+      }
+      toast.success(mensajes[estado] ?? 'Cambio guardado')
+    } else {
+      toast.error('No se pudo realizar el cambio. Intenta de nuevo.')
+    }
     cargar()
   }
 
@@ -67,15 +79,22 @@ export default function VoluntariosAdminPage() {
     if (res.ok) {
       setResetModal({ nombre: json.nombre, clave: json.tempPassword })
       setCopiado(false)
+    } else {
+      toast.error(json.error ?? 'No se pudo restablecer la contraseña')
     }
   }
 
   async function togglePermisoEspecial(id: string, valor: boolean) {
-    await fetch('/api/admin/voluntarios', {
+    const res = await fetch('/api/admin/voluntarios', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, puede_aprobar_coordinadores: valor }),
     })
+    if (res.ok) {
+      toast.success(valor ? 'Permiso especial otorgado' : 'Permiso especial revocado')
+    } else {
+      toast.error('No se pudo actualizar el permiso')
+    }
     cargar()
   }
 
@@ -445,7 +464,7 @@ export default function VoluntariosAdminPage() {
             <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between gap-3 mb-4">
               <span className="font-mono text-lg font-bold text-gray-900 tracking-wider">{resetModal.clave}</span>
               <button
-                onClick={() => { navigator.clipboard.writeText(resetModal.clave); setCopiado(true) }}
+                onClick={() => { navigator.clipboard.writeText(resetModal.clave); setCopiado(true); toast.success('Contraseña copiada al portapapeles') }}
                 className="flex items-center gap-1.5 text-xs text-cyan-600 hover:text-cyan-800 transition"
               >
                 <Copy className="w-4 h-4" />
