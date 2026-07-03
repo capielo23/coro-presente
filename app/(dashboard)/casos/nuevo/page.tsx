@@ -1,9 +1,10 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Users, Check } from 'lucide-react'
+import { User, Users, Check, Plus, X, ClipboardList } from 'lucide-react'
 import CedulaInput from '@/components/ui/CedulaInput'
 import TelefonoInput from '@/components/ui/TelefonoInput'
+import { CATEGORIA_LABELS } from '@/lib/utils'
 
 function CampoError({ msg }: { msg?: string }) {
   if (!msg) return null
@@ -30,6 +31,8 @@ interface PersonaForm {
   apellido: string
   cedula: string
   edad_aprox: string
+  edad_unidad: string
+  fecha_nacimiento: string
   sexo: string
   rol_familia: string
   condicion_especial: string
@@ -37,15 +40,29 @@ interface PersonaForm {
 }
 
 const personaVacia = (): PersonaForm => ({
-  nombre: '', apellido: '', cedula: '', edad_aprox: '',
+  nombre: '', apellido: '', cedula: '', edad_aprox: '', edad_unidad: 'anios', fecha_nacimiento: '',
   sexo: 'no_especificado', rol_familia: '', condicion_especial: '', telefono: '',
+})
+
+// Necesidades definidas desde el registro (Fase 2)
+interface ItemForm { texto: string; cantidad: string; persona_idx: number | null }
+interface NecesidadForm {
+  categoria: string
+  descripcion: string
+  es_recurrente: boolean
+  frecuencia: string
+  items: ItemForm[]
+}
+const necesidadVacia = (): NecesidadForm => ({
+  categoria: 'alimentacion', descripcion: '', es_recurrente: false, frecuencia: 'semanal', items: [],
 })
 
 const PASOS = [
   { numero: 1, label: '¿Quién?' },
   { numero: 2, label: 'Ubicación' },
   { numero: 3, label: 'Personas' },
-  { numero: 4, label: 'Seguimiento' },
+  { numero: 4, label: 'Necesidades' },
+  { numero: 5, label: 'Seguimiento' },
 ]
 
 export default function NuevoCasoPage() {
@@ -72,6 +89,29 @@ export default function NuevoCasoPage() {
   const [loading, setLoading] = useState(false)
   const [erroresCampos, setErroresCampos] = useState<Record<string, string>>({})
   const fileRefs = useRef<(HTMLInputElement | null)[]>([])
+  // Necesidades (Fase 2): se definen desde el registro
+  const [necesidades, setNecesidades] = useState<NecesidadForm[]>([])
+  const [necDraft, setNecDraft] = useState<NecesidadForm>(necesidadVacia())
+  const [itemDraft, setItemDraft] = useState<ItemForm>({ texto: '', cantidad: '', persona_idx: null })
+
+  const nombreIntegrante = (idx: number | null) => {
+    if (idx === null || !personas[idx]) return 'Toda la familia'
+    return `${personas[idx].nombre} ${personas[idx].apellido}`.trim() || `Integrante ${idx + 1}`
+  }
+  function agregarItemADraft() {
+    const t = itemDraft.texto.trim()
+    if (!t) return
+    setNecDraft(prev => ({ ...prev, items: [...prev.items, { ...itemDraft, texto: t }] }))
+    setItemDraft({ texto: '', cantidad: '', persona_idx: itemDraft.persona_idx })
+  }
+  function agregarNecesidadDraft() {
+    setNecesidades(prev => [...prev, necDraft])
+    setNecDraft(necesidadVacia())
+    setItemDraft({ texto: '', cantidad: '', persona_idx: null })
+  }
+  function eliminarNecesidad(idx: number) {
+    setNecesidades(prev => prev.filter((_, i) => i !== idx))
+  }
 
   useEffect(() => {
     fetch('/api/sectores-coro').then(r => r.json()).then(setSectoresCoro).catch(() => {})
@@ -202,7 +242,7 @@ export default function NuevoCasoPage() {
     if (err) { setError(err); return }
     setError('')
     setErroresCampos({})
-    setPaso(p => Math.min(4, p + 1))
+    setPaso(p => Math.min(5, p + 1))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -235,14 +275,32 @@ export default function NuevoCasoPage() {
         : datosCaso.nombre_caso,
       ...restoDatosCaso,
       ser_tutor: serTutor === 'si',
-      personas: personas.map((p, idx) => ({
-        ...p,
-        edad_aprox: p.edad_aprox ? parseInt(p.edad_aprox) : undefined,
-        cedula: p.cedula || undefined,
-        telefono: p.telefono || undefined,
-        condicion_especial: p.condicion_especial || undefined,
-        rol_familia: p.rol_familia || undefined,
-        foto_url: fotoPaths[idx] || undefined,
+      personas: personas.map((p, idx) => {
+        const edadNum = p.edad_aprox ? parseInt(p.edad_aprox) : undefined
+        const esMeses = p.edad_unidad === 'meses'
+        return {
+          nombre: p.nombre,
+          apellido: p.apellido,
+          cedula: p.cedula || undefined,
+          sexo: p.sexo,
+          rol_familia: p.rol_familia || undefined,
+          condicion_especial: p.condicion_especial || undefined,
+          telefono: p.telefono || undefined,
+          fecha_nacimiento: p.fecha_nacimiento || undefined,
+          edad_aprox: esMeses ? undefined : edadNum,
+          edad_meses: esMeses ? edadNum : undefined,
+          foto_url: fotoPaths[idx] || undefined,
+        }
+      }),
+      necesidades: necesidades.map(n => ({
+        categoria: n.categoria,
+        descripcion: n.descripcion || undefined,
+        es_recurrente: n.es_recurrente,
+        frecuencia: n.es_recurrente ? n.frecuencia : undefined,
+        items: n.items.map(it => ({
+          texto: it.cantidad ? `${it.texto} ×${it.cantidad}` : it.texto,
+          persona_idx: it.persona_idx,
+        })),
       })),
     }
 
@@ -569,8 +627,19 @@ export default function NuevoCasoPage() {
                         <CedulaInput value={persona.cedula} onChange={val => actualizarPersona(idx, 'cedula', val)} className={inputCls} />
                       </div>
                       <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Fecha de nacimiento <span className="text-gray-400">(opcional)</span></label>
+                        <input type="date" value={persona.fecha_nacimiento} onChange={e => actualizarPersona(idx, 'fecha_nacimiento', e.target.value)} className={inputCls} />
+                      </div>
+                      <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Edad aproximada</label>
-                        <input type="number" min="0" max="120" value={persona.edad_aprox} onChange={e => actualizarPersona(idx, 'edad_aprox', e.target.value)} className={inputCls} />
+                        <div className="flex gap-2">
+                          <input type="number" min="0" max="120" value={persona.edad_aprox} onChange={e => actualizarPersona(idx, 'edad_aprox', e.target.value)} placeholder="Ej: 3" className={inputCls} />
+                          <select value={persona.edad_unidad} onChange={e => actualizarPersona(idx, 'edad_unidad', e.target.value)} className={`${inputCls} w-auto`}>
+                            <option value="anios">años</option>
+                            <option value="meses">meses</option>
+                          </select>
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1">Para recién nacidos, usa la opción de meses.</p>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Sexo</label>
@@ -635,8 +704,114 @@ export default function NuevoCasoPage() {
           </section>
         )}
 
-        {/* Paso 4: Seguimiento */}
+        {/* Paso 4: Necesidades */}
         {paso === 4 && (
+          <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
+            <div>
+              <h3 className="font-semibold text-gray-800 mb-1 flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-cyan-600" /> Necesidades del caso
+              </h3>
+              <p className="text-xs text-gray-400">
+                Detalla desde ya lo que se necesita, por categoría y por integrante. Cada artículo (ej. cada
+                medicina o cada prenda) se marca por separado cuando se entregue. Es opcional; puedes agregarlas luego al editar el caso.
+              </p>
+            </div>
+
+            {/* Necesidades ya agregadas */}
+            {necesidades.length > 0 && (
+              <div className="space-y-2">
+                {necesidades.map((n, i) => (
+                  <div key={i} className="border border-gray-200 rounded-lg p-3 text-sm">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-gray-800">{CATEGORIA_LABELS[n.categoria] || n.categoria}
+                        {n.es_recurrente && <span className="text-purple-600 text-xs font-normal"> · recurrente ({n.frecuencia})</span>}
+                      </p>
+                      <button type="button" onClick={() => eliminarNecesidad(i)} className="text-gray-300 hover:text-red-500 transition" aria-label="Quitar necesidad">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {n.descripcion && <p className="text-gray-500 text-xs mt-0.5">{n.descripcion}</p>}
+                    {n.items.length > 0 && (
+                      <ul className="mt-1.5 space-y-0.5">
+                        {n.items.map((it, j) => (
+                          <li key={j} className="text-xs text-gray-600 flex items-center gap-1.5">
+                            <span className="w-1 h-1 rounded-full bg-cyan-500 shrink-0" />
+                            {it.texto}{it.cantidad ? ` ×${it.cantidad}` : ''} <span className="text-cyan-600">· {nombreIntegrante(it.persona_idx)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Constructor de una necesidad */}
+            <div className="border border-cyan-200 bg-cyan-50 rounded-xl p-3 space-y-3">
+              <p className="text-xs font-semibold text-gray-700">Agregar una necesidad</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+                  <select value={necDraft.categoria} onChange={e => setNecDraft(p => ({ ...p, categoria: e.target.value }))} className={inputCls}>
+                    {Object.entries(CATEGORIA_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Descripción <span className="text-gray-400">(opcional)</span></label>
+                  <input value={necDraft.descripcion} onChange={e => setNecDraft(p => ({ ...p, descripcion: e.target.value }))} placeholder="Ej: medicinas crónicas, ropa por tallas..." className={inputCls} />
+                </div>
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" checked={necDraft.es_recurrente} onChange={e => setNecDraft(p => ({ ...p, es_recurrente: e.target.checked }))} className="accent-cyan-600" />
+                Es recurrente (se repite)
+              </label>
+              {necDraft.es_recurrente && (
+                <select value={necDraft.frecuencia} onChange={e => setNecDraft(p => ({ ...p, frecuencia: e.target.value }))} className={`${inputCls} sm:w-auto`}>
+                  <option value="semanal">Cada semana</option>
+                  <option value="quincenal">Cada 15 días</option>
+                  <option value="mensual">Mensual</option>
+                </select>
+              )}
+
+              {/* Artículos de esta necesidad */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Artículos <span className="text-gray-400">(cada uno se marca por separado)</span></label>
+                <div className="flex flex-wrap gap-2">
+                  <input value={itemDraft.texto} onChange={e => setItemDraft(p => ({ ...p, texto: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarItemADraft() } }}
+                    placeholder="Ej: Paracetamol 500mg" className={`${inputCls} flex-1 min-w-[130px]`} />
+                  <input value={itemDraft.cantidad} onChange={e => setItemDraft(p => ({ ...p, cantidad: e.target.value }))} type="number" min="1" placeholder="Cant." className={`${inputCls} w-20`} />
+                  <select value={itemDraft.persona_idx === null ? '' : String(itemDraft.persona_idx)} onChange={e => setItemDraft(p => ({ ...p, persona_idx: e.target.value === '' ? null : Number(e.target.value) }))} className={`${inputCls} w-auto`}>
+                    <option value="">Toda la familia</option>
+                    {personas.map((p, idx) => <option key={idx} value={idx}>{`${p.nombre} ${p.apellido}`.trim() || `Integrante ${idx + 1}`}</option>)}
+                  </select>
+                  <button type="button" onClick={agregarItemADraft} className="flex items-center gap-1 text-sm text-cyan-700 border border-cyan-200 bg-white px-2.5 py-2 rounded-lg hover:bg-cyan-100 transition whitespace-nowrap">
+                    <Plus className="w-4 h-4" /> Ítem
+                  </button>
+                </div>
+                {necDraft.items.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5 mt-2">
+                    {necDraft.items.map((it, j) => (
+                      <li key={j} className="flex items-center gap-1 text-xs bg-white text-gray-700 border border-cyan-200 pl-2.5 pr-1 py-1 rounded-full">
+                        {it.texto}{it.cantidad ? ` ×${it.cantidad}` : ''} <span className="text-cyan-600">· {nombreIntegrante(it.persona_idx)}</span>
+                        <button type="button" onClick={() => setNecDraft(p => ({ ...p, items: p.items.filter((_, idx) => idx !== j) }))} className="text-gray-400 hover:text-red-500" aria-label="Quitar ítem"><X className="w-3.5 h-3.5" /></button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <button type="button" onClick={agregarNecesidadDraft}
+                className="w-full py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-semibold rounded-lg transition flex items-center justify-center gap-2">
+                <Check className="w-4 h-4" /> Agregar esta necesidad
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* Paso 5: Seguimiento */}
+        {paso === 5 && (
           <section className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
             <div>
               <h3 className="font-semibold text-gray-800 mb-1">¿Quieres hacerle seguimiento?</h3>
@@ -674,6 +849,7 @@ export default function NuevoCasoPage() {
                 <p>Nombre: <span className="text-gray-800">{datosCaso.nombre_caso}</span></p>
               )}
               <p>Integrantes: <span className="text-gray-800">{personas.length}</span></p>
+              <p>Necesidades: <span className="text-gray-800">{necesidades.length}</span></p>
               {datosCaso.ciudad_origen && (
                 <p>Origen: <span className="text-gray-800">{datosCaso.ciudad_origen}, {datosCaso.estado_origen}</span></p>
               )}
@@ -704,7 +880,7 @@ export default function NuevoCasoPage() {
             </button>
           )}
 
-          {paso < 4 ? (
+          {paso < 5 ? (
             <button type="button" onClick={avanzar}
               className="flex-1 bg-[#0891B2] hover:bg-[#0C4A6E] text-white py-2.5 rounded-lg text-sm font-medium transition btn-press">
               Siguiente →

@@ -95,7 +95,9 @@ export default function IntegranteCard({
           </div>
           <p className="text-gray-500 text-xs mt-0.5">
             {persona.cedula && `CI: ${persona.cedula} · `}
-            {persona.edad_aprox && `${persona.edad_aprox} años · `}
+            {persona.edad_meses
+              ? `${persona.edad_meses} ${persona.edad_meses === 1 ? 'mes' : 'meses'} · `
+              : persona.edad_aprox ? `${persona.edad_aprox} años · ` : ''}
             {persona.rol_familia && <span className="capitalize">{persona.rol_familia}</span>}
           </p>
           {persona.telefono && (
