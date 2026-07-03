@@ -12,8 +12,8 @@ interface Toast {
 
 interface ToastContextValue {
   success: (msg: string) => void
-  error: (msg: string) => void
-  info: (msg: string) => void
+  error:   (msg: string) => void
+  info:    (msg: string) => void
 }
 
 type Action =
@@ -29,20 +29,20 @@ function reducer(state: Toast[], action: Action): Toast[] {
 
 const ICONS = {
   success: CheckCircle2,
-  error: XCircle,
-  info: AlertCircle,
+  error:   XCircle,
+  info:    AlertCircle,
 }
 
-const STYLES = {
-  success: 'bg-white border-green-300 text-green-800',
-  error:   'bg-white border-red-300 text-red-800',
-  info:    'bg-white border-cyan-300 text-cyan-800',
+const STYLES: Record<ToastType, React.CSSProperties> = {
+  success: { borderColor: '#86efac', color: '#166534' },
+  error:   { borderColor: '#fca5a5', color: '#991b1b' },
+  info:    { borderColor: '#67e8f9', color: '#155e75' },
 }
 
-const ICON_COLORS = {
-  success: 'text-green-500',
-  error:   'text-red-500',
-  info:    'text-cyan-500',
+const ICON_COLORS: Record<ToastType, string> = {
+  success: '#22c55e',
+  error:   '#ef4444',
+  info:    '#06b6d4',
 }
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
@@ -52,7 +52,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const show = useCallback((type: ToastType, message: string) => {
     const id = ++counter.current
     dispatch({ type: 'ADD', toast: { id, type, message } })
-    setTimeout(() => dispatch({ type: 'REMOVE', id }), 4000)
+    setTimeout(() => dispatch({ type: 'REMOVE', id }), 4500)
   }, [])
 
   const value: ToastContextValue = {
@@ -64,11 +64,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {/* Portal de toasts — esquina superior derecha */}
       <div
         aria-live="polite"
-        className="fixed top-4 right-4 z-[9999] flex flex-col gap-2 pointer-events-none"
-        style={{ maxWidth: 'min(360px, calc(100vw - 2rem))' }}
+        style={{
+          position: 'fixed',
+          top: '1rem',
+          right: '1rem',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '0.5rem',
+          maxWidth: 'min(360px, calc(100vw - 2rem))',
+          pointerEvents: 'none',
+        }}
       >
         {toasts.map(t => {
           const Icon = ICONS[t.type]
@@ -76,16 +84,39 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
               key={t.id}
               role="alert"
-              className={`flex items-start gap-3 px-4 py-3 rounded-xl border shadow-lg pointer-events-auto animate-in slide-in-from-right-4 fade-in duration-200 ${STYLES[t.type]}`}
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.75rem',
+                padding: '0.75rem 1rem',
+                borderRadius: '0.75rem',
+                border: '1px solid',
+                backgroundColor: '#ffffff',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                pointerEvents: 'auto',
+                ...STYLES[t.type],
+              }}
             >
-              <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${ICON_COLORS[t.type]}`} />
-              <p className="text-sm leading-snug flex-1">{t.message}</p>
+              <Icon
+                style={{ width: 16, height: 16, flexShrink: 0, marginTop: 2, color: ICON_COLORS[t.type] }}
+              />
+              <p style={{ fontSize: '0.875rem', lineHeight: '1.4', flex: 1, margin: 0 }}>
+                {t.message}
+              </p>
               <button
                 onClick={() => dispatch({ type: 'REMOVE', id: t.id })}
-                className="shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+                style={{
+                  flexShrink: 0,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#9ca3af',
+                  padding: 0,
+                  lineHeight: 1,
+                }}
                 aria-label="Cerrar"
               >
-                <X className="w-3.5 h-3.5" />
+                <X style={{ width: 14, height: 14 }} />
               </button>
             </div>
           )

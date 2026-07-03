@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { CheckCircle2, UserPlus, AlertCircle, Users, Settings2 } from 'lucide-react'
 import CedulaInput from '@/components/ui/CedulaInput'
 import TelefonoInput from '@/components/ui/TelefonoInput'
+import { useToast } from '@/components/ui/ToastContext'
 
 interface AreaCatalogo {
   clave: string
@@ -52,6 +53,7 @@ function enfocarPrimerError(errores: Errores) {
 }
 
 export default function RegistroPage() {
+  const toast = useToast()
   const [tipoRegistro, setTipoRegistro] = useState<TipoRegistro>('voluntario')
   const [form, setForm] = useState({
     nombre_completo: '', email: '', password: '', cedula: '', telefono: '', descripcion_ayuda: '',
@@ -130,7 +132,14 @@ export default function RegistroPage() {
       body: JSON.stringify({ ...form, areas_ayuda: areasSeleccionadas, solicita_rol: tipoRegistro }),
     })
     const data = await res.json()
-    if (!res.ok) { setErrorServidor(data.error || 'Error al registrarse'); setLoading(false); return }
+    if (!res.ok) {
+      const msg = data.error || 'Error al registrarse'
+      setErrorServidor(msg)
+      toast.error(msg)
+      setLoading(false)
+      return
+    }
+    toast.success('¡Solicitud enviada! Un coordinador revisará tu acceso pronto.')
     setExito(true)
     setMensaje(data.message)
     setLoading(false)
