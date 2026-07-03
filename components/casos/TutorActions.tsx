@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserCheck, UserMinus, Users, LogOut, AlertCircle, MapPin, Sparkles, CheckCircle2, X } from 'lucide-react'
+import { UserCheck, UserMinus, AlertCircle, MapPin, Sparkles, CheckCircle2, X } from 'lucide-react'
 
 interface MatchInfo {
   categoriasMatch: string[]
@@ -26,7 +26,6 @@ export default function TutorActions({ casoId, tutorId, tutorNombre, userId, esC
   const [loading, setLoading] = useState(false)
   const [localTutorId, setLocalTutorId] = useState(tutorId)
   const [localTutorNombre, setLocalTutorNombre] = useState(tutorNombre)
-  const [localEsColab, setLocalEsColab] = useState(esColaborador)
   const [confirmarLiberar, setConfirmarLiberar] = useState(false)
   const [mostrarCompromiso, setMostrarCompromiso] = useState(false)
   const [aceptado, setAceptado] = useState(false)
@@ -67,20 +66,6 @@ export default function TutorActions({ casoId, tutorId, tutorNombre, userId, esC
     setLoading(false)
   }
 
-  async function colaborar() {
-    setLoading(true)
-    const res = await fetch(`/api/casos/${casoId}/colaborar`, { method: 'POST' })
-    if (res.ok) { setLocalEsColab(true); router.refresh() }
-    setLoading(false)
-  }
-
-  async function salirColaboracion() {
-    setLoading(true)
-    const res = await fetch(`/api/casos/${casoId}/colaborar`, { method: 'DELETE' })
-    if (res.ok) { setLocalEsColab(false); router.refresh() }
-    setLoading(false)
-  }
-
   return (
     <div className="bg-[var(--color-muted)] rounded-xl border border-[var(--color-border)] p-4">
       <div className="flex items-start justify-between gap-3 flex-wrap">
@@ -106,9 +91,9 @@ export default function TutorActions({ casoId, tutorId, tutorNombre, userId, esC
               ? 'Eres responsable del seguimiento de este caso.'
               : sinTutor
               ? 'Cualquier voluntario puede tomar el seguimiento.'
-              : localEsColab
-              ? 'Estás colaborando en este caso.'
-              : 'Puedes unirte como colaborador para ayudar.'}
+              : esColaborador
+              ? 'Estás registrado como colaborador. Puedes observar el caso.'
+              : 'Este caso ya tiene tutor asignado.'}
           </p>
         </div>
 
@@ -121,28 +106,6 @@ export default function TutorActions({ casoId, tutorId, tutorNombre, userId, esC
             >
               <UserCheck className="w-4 h-4" />
               {loading ? 'Procesando...' : 'Tomar seguimiento'}
-            </button>
-          )}
-
-          {localTutorId && !esTutor && !localEsColab && (
-            <button
-              onClick={colaborar}
-              disabled={loading}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-sm px-4 py-2 rounded-lg font-medium transition disabled:opacity-50 whitespace-nowrap btn-press"
-            >
-              <Users className="w-4 h-4" />
-              {loading ? 'Procesando...' : 'Unirme a colaborar'}
-            </button>
-          )}
-
-          {localTutorId && !esTutor && localEsColab && (
-            <button
-              onClick={salirColaboracion}
-              disabled={loading}
-              className="flex items-center gap-2 text-sm text-gray-500 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition disabled:opacity-50 whitespace-nowrap btn-press"
-            >
-              <LogOut className="w-4 h-4" />
-              {loading ? 'Procesando...' : 'Dejar de colaborar'}
             </button>
           )}
 

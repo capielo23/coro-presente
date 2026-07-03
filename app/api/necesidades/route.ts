@@ -19,11 +19,19 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
+  const admin = createAdminClient()
+  const { data: volPost } = await admin.from('voluntarios').select('estado, rol').eq('id', user.id).single()
+  if (!volPost || volPost.estado !== 'aprobado') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+  if (!['admin', 'coordinador'].includes(volPost.rol ?? '')) {
+    return NextResponse.json({ error: 'Solo coordinadores pueden agregar necesidades' }, { status: 403 })
+  }
+
   const body = await request.json()
   const parsed = schema.safeParse(body)
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 })
 
-  const admin = createAdminClient()
   const { especialidad_requerida, items, persona_id, ...rest } = parsed.data
   const especialidad = especialidad_requerida && especialidad_requerida.length > 0 ? especialidad_requerida : null
 
@@ -127,10 +135,11 @@ export async function PATCH(request: NextRequest) {
   // Verificar que el voluntario está aprobado
   const admin = createAdminClient()
   const { data: voluntario } = await admin
-    .from('voluntarios').select('estado, nombre_completo').eq('id', user.id).single()
+    .from('voluntarios').select('estado, rol, nombre_completo').eq('id', user.id).single()
   if (!voluntario || voluntario.estado !== 'aprobado') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
+  const esAdmin = ['admin', 'coordinador'].includes(voluntario.rol ?? '')
   const marcadoNombre = voluntario.nombre_completo ?? null
   const now = new Date().toISOString()
 
@@ -142,6 +151,10 @@ export async function PATCH(request: NextRequest) {
     const { data: nec } = await admin
       .from('necesidades').select('caso_id, items_entrega, es_recurrente').eq('id', id).single()
     if (!nec) return NextResponse.json({ error: 'Necesidad no encontrada' }, { status: 404 })
+
+    // Verificar tutor del caso para acciones de entrega
+    const { data: casoTutor } = await admin.from('casos').select('tutor_id').eq('id', nec.caso_id).single()
+    const esTutor = casoTutor?.tutor_id === user.id
 
     type Item = { id?: string; texto: string; persona_id?: string | null; persona_nombre?: string | null; entregado: boolean; entregado_por?: string | null; entregado_por_id?: string | null; marcado_por?: string | null; fecha?: string; nota?: string | null }
     const itemsActuales: Item[] = nec.items_entrega?.items ?? []
@@ -161,6 +174,7 @@ export async function PATCH(request: NextRequest) {
 
     // Inicializar el checklist desde una lista de artículos
     if (accion === 'desglosar') {
+      if (!esAdmin) return NextResponse.json({ error: 'Solo coordinadores pueden modificar las necesidades' }, { status: 403 })
       if (!Array.isArray(items)) return NextResponse.json({ error: 'Faltan artículos' }, { status: 400 })
       const construido = await construirItemsEntrega(admin, nec.caso_id, items)
       const nuevos: Item[] = construido?.items ?? []
@@ -171,6 +185,7 @@ export async function PATCH(request: NextRequest) {
 
     // Agregar uno o más artículos a un checklist existente (sin borrar lo ya cargado)
     if (accion === 'agregar_item') {
+      if (!esAdmin) return NextResponse.json({ error: 'Solo coordinadores pueden modificar las necesidades' }, { status: 403 })
       if (!Array.isArray(items)) return NextResponse.json({ error: 'Faltan artículos' }, { status: 400 })
       const construido = await construirItemsEntrega(admin, nec.caso_id, items)
       const nuevos: Item[] = [...itemsActuales, ...(construido?.items ?? [])]
@@ -181,6 +196,7 @@ export async function PATCH(request: NextRequest) {
 
     // Editar un artículo: corregir su texto y/o reasignar el integrante
     if (accion === 'editar_item') {
+      if (!esAdmin) return NextResponse.json({ error: 'Solo coordinadores pueden modificar las necesidades' }, { status: 403 })
       const coincide = (it: Item) => (item_id ? it.id === item_id : it.texto === String(item_texto ?? ''))
       const nuevoTexto = typeof body.nuevo_texto === 'string' ? body.nuevo_texto.trim().slice(0, 200) : null
       // Resolver nuevo dueño si se envió persona_id (cadena vacía = "Toda la familia")
@@ -208,6 +224,7 @@ export async function PATCH(request: NextRequest) {
 
     // Eliminar un artículo del checklist + su registro en el ledger
     if (accion === 'eliminar_item') {
+      if (!esAdmin) return NextResponse.json({ error: 'Solo coordinadores pueden modificar las necesidades' }, { status: 403 })
       const coincide = (it: Item) => (item_id ? it.id === item_id : it.texto === String(item_texto ?? ''))
       const target = itemsActuales.find(coincide)
       const nuevos = itemsActuales.filter(it => !coincide(it))
@@ -223,6 +240,7 @@ export async function PATCH(request: NextRequest) {
 
     // Editar los datos de la necesidad (corregir categoría / descripción / etc.)
     if (accion === 'editar_necesidad') {
+      if (!esAdmin) return NextResponse.json({ error: 'Solo coordinadores pueden modificar las necesidades' }, { status: 403 })
       const cats = ['alimentacion','ropa','medicamentos','traslado','alojamiento','hogar','utiles','ninos','adulto_mayor','otro']
       const update: Record<string, unknown> = {}
       if (typeof body.categoria === 'string' && cats.includes(body.categoria)) update.categoria = body.categoria
@@ -247,6 +265,7 @@ export async function PATCH(request: NextRequest) {
 
     // Marcar un artículo como entregado (con atribución al deliverer real)
     if (accion === 'entregar_item') {
+      if (!esAdmin && !esTutor) return NextResponse.json({ error: 'Solo el tutor o coordinador puede marcar entregas' }, { status: 403 })
       const texto = String(item_texto ?? '')
       const nota = typeof body.nota === 'string' ? (body.nota.trim().slice(0, 500) || null) : null
       const coincide = (it: Item) => (item_id ? it.id === item_id : it.texto === texto)
@@ -267,6 +286,7 @@ export async function PATCH(request: NextRequest) {
 
     // Desmarcar un artículo (corrección): vuelve a pendiente y se elimina su registro del ledger
     if (accion === 'desmarcar_item') {
+      if (!esAdmin && !esTutor) return NextResponse.json({ error: 'Solo el tutor o coordinador puede marcar entregas' }, { status: 403 })
       const texto = String(item_texto ?? '')
       const coincide = (it: Item) => (item_id ? it.id === item_id : it.texto === texto)
       const target = itemsActuales.find(coincide)
@@ -283,6 +303,7 @@ export async function PATCH(request: NextRequest) {
 
     // Registrar una entrega de período (necesidades recurrentes): no cierra la necesidad
     if (accion === 'entrega_periodo') {
+      if (!esAdmin && !esTutor) return NextResponse.json({ error: 'Solo el tutor o coordinador puede registrar entregas' }, { status: 403 })
       const deliverer = await resolverDeliverer(admin, entregado_por_id)
       const desc = typeof descripcion_entrega === 'string' ? descripcion_entrega.slice(0, 500) : null
       const { error } = await admin.from('entregas').insert({
@@ -305,6 +326,15 @@ export async function PATCH(request: NextRequest) {
   const estadosValidos = ['pendiente', 'en_gestion', 'entregado', 'parcial', 'recurrente']
   if (!estado || !estadosValidos.includes(estado)) {
     return NextResponse.json({ error: 'Estado no permitido' }, { status: 400 })
+  }
+
+  // Verificar tutor para el modo simple
+  const { data: necSimple } = await admin.from('necesidades').select('caso_id').eq('id', id).single()
+  if (!necSimple) return NextResponse.json({ error: 'Necesidad no encontrada' }, { status: 404 })
+  const { data: casoSimple } = await admin.from('casos').select('tutor_id').eq('id', necSimple.caso_id).single()
+  const esTutorSimple = casoSimple?.tutor_id === user.id
+  if (!esAdmin && !esTutorSimple) {
+    return NextResponse.json({ error: 'Solo el tutor o coordinador puede actualizar el estado' }, { status: 403 })
   }
 
   const updateData: Record<string, unknown> = { estado }
@@ -350,9 +380,12 @@ export async function DELETE(request: NextRequest) {
 
   const admin = createAdminClient()
   const { data: voluntario } = await admin
-    .from('voluntarios').select('estado').eq('id', user.id).single()
+    .from('voluntarios').select('estado, rol').eq('id', user.id).single()
   if (!voluntario || voluntario.estado !== 'aprobado') {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+  if (!['admin', 'coordinador'].includes(voluntario.rol ?? '')) {
+    return NextResponse.json({ error: 'Solo coordinadores pueden eliminar necesidades' }, { status: 403 })
   }
 
   const { error } = await admin.from('necesidades').delete().eq('id', id)

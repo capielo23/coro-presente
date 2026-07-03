@@ -14,16 +14,27 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  // Coordinadores/admins pueden agregar a otro voluntario pasando voluntario_id en el body
-  let targetVoluntarioId = user.id
+  // Solo coordinadores/admins pueden asignar colaboradores
   const esGestor = ['admin', 'coordinador'].includes(vol.rol) || !!vol.puede_aprobar_coordinadores
-  if (esGestor) {
-    try {
-      const body = await req.json()
-      if (body?.voluntario_id && body.voluntario_id !== user.id) {
-        targetVoluntarioId = body.voluntario_id
-      }
-    } catch { /* body vacío — usa el propio usuario */ }
+  if (!esGestor) {
+    return NextResponse.json({ error: 'Solo coordinadores pueden asignar colaboradores a un caso' }, { status: 403 })
+  }
+
+  let targetVoluntarioId = user.id
+  try {
+    const body = await req.json()
+    if (body?.voluntario_id) targetVoluntarioId = body.voluntario_id
+  } catch { /* body vacío — usa el propio usuario */ }
+
+  // Límite: máximo 5 casos activos como colaborador
+  const { count: yaComoColaborador } = await admin
+    .from('caso_colaboradores').select('*', { count: 'exact', head: true })
+    .eq('voluntario_id', targetVoluntarioId)
+  if ((yaComoColaborador ?? 0) >= 5) {
+    return NextResponse.json(
+      { error: 'Este voluntario ha alcanzado el límite de 5 casos como colaborador.' },
+      { status: 409 }
+    )
   }
 
   const { error } = await admin.from('caso_colaboradores').insert({
@@ -51,16 +62,21 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   if (!user) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const admin = createAdminClient()
-  const { data: vol } = await admin.from('voluntarios').select('rol, puede_aprobar_coordinadores').eq('id', user.id).single()
+  const { data: vol } = await admin.from('voluntarios').select('rol, estado, puede_aprobar_coordinadores').eq('id', user.id).single()
+  if (!vol || vol.estado !== 'aprobado') {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
+  const esGestor = ['admin', 'coordinador'].includes(vol?.rol ?? '') || !!vol?.puede_aprobar_coordinadores
+  if (!esGestor) {
+    return NextResponse.json({ error: 'Solo coordinadores pueden quitar colaboradores de un caso' }, { status: 403 })
+  }
 
   let targetVoluntarioId = user.id
-  const esGestor = ['admin', 'coordinador'].includes(vol?.rol ?? '') || !!vol?.puede_aprobar_coordinadores
-  if (esGestor) {
-    try {
-      const body = await req.json()
-      if (body?.voluntario_id) targetVoluntarioId = body.voluntario_id
-    } catch { /* body vacío */ }
-  }
+  try {
+    const body = await req.json()
+    if (body?.voluntario_id) targetVoluntarioId = body.voluntario_id
+  } catch { /* body vacío */ }
 
   const { error } = await admin
     .from('caso_colaboradores')
