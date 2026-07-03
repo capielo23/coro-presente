@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -8,7 +8,9 @@ import { useToast } from '@/components/ui/ToastContext'
 
 const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm text-gray-800 bg-white transition'
 
-export default function CambiarContrasenaPage() {
+// Componente interno separado para aislar useSearchParams en un Suspense boundary
+// (Next.js 14 lo requiere para evitar error de prerendering estático)
+function CambiarContrasenaInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToast()
@@ -161,5 +163,18 @@ export default function CambiarContrasenaPage() {
         </button>
       </form>
     </>
+  )
+}
+
+export default function CambiarContrasenaPage() {
+  return (
+    <Suspense fallback={
+      <div className="text-center py-8">
+        <Loader2 className="w-8 h-8 text-cyan-500 animate-spin mx-auto mb-4" />
+        <p className="text-gray-500 text-sm">Cargando...</p>
+      </div>
+    }>
+      <CambiarContrasenaInner />
+    </Suspense>
   )
 }
