@@ -37,15 +37,9 @@ export async function middleware(request: NextRequest) {
   }
 
   // Si el usuario tiene marcado que debe cambiar su contraseña (clave temporal),
-  // redirigir a /cambiar-contrasena desde cualquier ruta de dashboard
+  // leer desde user_metadata (disponible sin RLS ni query extra)
   if (user && isDashboard && !isCambiarContrasena) {
-    const { data: perfil } = await supabase
-      .from('voluntarios')
-      .select('debe_cambiar_contrasena')
-      .eq('id', user.id)
-      .single()
-
-    if (perfil?.debe_cambiar_contrasena) {
+    if (user.user_metadata?.debe_cambiar_contrasena === true) {
       const url = new URL('/cambiar-contrasena', request.url)
       url.searchParams.set('temporal', '1')
       const redirect = NextResponse.redirect(url)

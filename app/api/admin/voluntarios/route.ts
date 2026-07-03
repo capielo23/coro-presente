@@ -165,11 +165,15 @@ export async function PUT(request: NextRequest) {
   if (voluntario.estado !== 'aprobado') return NextResponse.json({ error: 'El voluntario no está aprobado' }, { status: 400 })
 
   const tempPassword = generarClaveTemporal()
-  const { error } = await admin.auth.admin.updateUserById(id, { password: tempPassword })
+  // Guardar flag en user_metadata para que el middleware lo lea sin RLS
+  const { error } = await admin.auth.admin.updateUserById(id, {
+    password: tempPassword,
+    user_metadata: { debe_cambiar_contrasena: true },
+  })
 
   if (error) return NextResponse.json({ error: 'No se pudo restablecer la contraseña' }, { status: 500 })
 
-  // Marcar que el usuario debe cambiar la clave al próximo inicio de sesión
+  // También marcar en la tabla como respaldo
   await admin.from('voluntarios').update({ debe_cambiar_contrasena: true }).eq('id', id)
 
   return NextResponse.json({ ok: true, tempPassword, nombre: voluntario.nombre_completo })
