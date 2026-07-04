@@ -2,21 +2,28 @@ import React from 'react'
 import Link from 'next/link'
 import {
   Home, Users, UserCheck, Settings, PlusCircle, ClipboardList,
-  Check, X, HelpCircle, Search, ChevronRight, ArrowRight
+  Check, X, HelpCircle, Search, ChevronRight, ArrowRight,
+  KeyRound, UserPlus, ShieldCheck, AlertTriangle, UserCog, MessageCircle
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 
-function Seccion({ numero, titulo, Icon, children }: {
-  numero: string; titulo: string; Icon: React.ElementType; children: React.ReactNode
+function Seccion({ numero, titulo, Icon, children, coordinador }: {
+  numero: number | string; titulo: string; Icon: React.ElementType; children: React.ReactNode; coordinador?: boolean
 }) {
   return (
-    <div className="bg-white rounded-xl border border-[var(--color-border)] shadow-sm p-5">
+    <div className={`bg-white rounded-xl border shadow-sm p-5 ${coordinador ? 'border-cyan-200' : 'border-[var(--color-border)]'}`}>
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-cyan-50 flex items-center justify-center shrink-0">
-          <Icon className="w-5 h-5 text-cyan-600" />
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white font-bold text-sm ${coordinador ? 'bg-cyan-600' : 'bg-[#0891B2]'}`}>
+          {numero}
         </div>
         <div>
-          <p className="text-xs text-gray-400 uppercase tracking-wide font-semibold">{numero}</p>
+          {coordinador && (
+            <p className="text-xs text-cyan-600 uppercase tracking-wide font-semibold mb-0.5">Solo coordinadores</p>
+          )}
           <h3 className="font-bold text-gray-900 text-base leading-tight">{titulo}</h3>
+        </div>
+        <div className="ml-auto">
+          <Icon className={`w-5 h-5 ${coordinador ? 'text-cyan-400' : 'text-gray-300'}`} />
         </div>
       </div>
       {children}
@@ -24,12 +31,10 @@ function Seccion({ numero, titulo, Icon, children }: {
   )
 }
 
-function Paso({ numero, texto }: { numero: number; texto: string }) {
+function Paso({ texto }: { texto: string }) {
   return (
-    <div className="flex gap-3">
-      <span className="shrink-0 w-6 h-6 rounded-full bg-[#0891B2] text-white text-xs flex items-center justify-center font-bold mt-0.5">
-        {numero}
-      </span>
+    <div className="flex gap-3 items-start">
+      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-[#0891B2] mt-2" />
       <p className="text-sm text-gray-700 leading-relaxed">{texto}</p>
     </div>
   )
@@ -64,7 +69,15 @@ function RolCard({ Icon, titulo, descripcion, puede, noPuede }: {
   )
 }
 
-export default function AprendizajePage() {
+export default async function AprendizajePage() {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  let esCoordinador = false
+  if (user) {
+    const { data: perfil } = await supabase.from('voluntarios').select('rol').eq('id', user.id).single()
+    esCoordinador = ['admin', 'coordinador'].includes(perfil?.rol ?? '')
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -76,10 +89,10 @@ export default function AprendizajePage() {
       </div>
 
       {/* Sección 1 */}
-      <Seccion numero="Primero" titulo="¿Qué es Coro Presente?" Icon={Home}>
+      <Seccion numero={1} titulo="¿Qué es Coro Presente?" Icon={Home}>
         <p className="text-sm text-gray-700 leading-relaxed mb-3">
-          Coro Presente es una herramienta para organizar la ayuda humanitaria a personas afectadas por el terremoto en Coro, Falcón.
-          Permite registrar casos, hacer seguimiento de necesidades y coordinar entre voluntarios — todo desde el teléfono.
+          Coro Presente es una herramienta para organizar la ayuda humanitaria a personas afectadas por el terremoto
+          en Coro, Falcón. Permite registrar casos, hacer seguimiento de necesidades y coordinar entre voluntarios — todo desde el teléfono.
         </p>
         <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-3 text-sm text-[var(--color-foreground)]">
           <strong>Principio fundamental:</strong> La información que registras en esta plataforma es
@@ -88,7 +101,7 @@ export default function AprendizajePage() {
       </Seccion>
 
       {/* Sección 2 */}
-      <Seccion numero="Segundo" titulo="¿Cómo funcionan los roles?" Icon={Users}>
+      <Seccion numero={2} titulo="¿Cómo funcionan los roles?" Icon={Users}>
         <p className="text-sm text-gray-600 mb-4">
           No hay jerarquía rígida. Todos los voluntarios pueden registrar casos y trabajar en necesidades.
           La diferencia está en quién se compromete a hacer <em>seguimiento</em>.
@@ -125,15 +138,15 @@ export default function AprendizajePage() {
       </Seccion>
 
       {/* Sección 3 */}
-      <Seccion numero="Tercero" titulo="Cómo registrar un caso" Icon={PlusCircle}>
+      <Seccion numero={3} titulo="Cómo registrar un caso" Icon={PlusCircle}>
         <div className="space-y-3 mb-4">
-          <Paso numero={1} texto="Ve a 'Nuevo registro' en el menú lateral." />
-          <Paso numero={2} texto="Selecciona si es una persona individual o un grupo familiar." />
-          <Paso numero={3} texto="Completa los datos de origen: ciudad y barrio donde vivían antes del terremoto." />
-          <Paso numero={4} texto="Indica dónde están alojados actualmente en Coro: tipo de alojamiento, sector y dirección." />
-          <Paso numero={5} texto="Agrega los datos de cada integrante. Solo Nombre y Apellido son obligatorios. La cédula ayuda a evitar registros duplicados." />
-          <Paso numero={6} texto="Al final, el sistema te pregunta si quieres tomar el seguimiento del caso o dejarlo disponible para otro voluntario." />
-          <Paso numero={7} texto="Haz clic en 'Registrar caso'. Serás redirigido a la ficha del caso donde puedes agregar necesidades." />
+          <Paso texto="Ve a 'Nuevo registro' en el menú lateral." />
+          <Paso texto="Selecciona si es una persona individual o un grupo familiar." />
+          <Paso texto="Completa los datos de origen: ciudad y barrio donde vivían antes del terremoto." />
+          <Paso texto="Indica dónde están alojados actualmente en Coro: tipo de alojamiento, sector y dirección." />
+          <Paso texto="Agrega los datos de cada integrante. Solo Nombre y Apellido son obligatorios. La cédula ayuda a evitar registros duplicados." />
+          <Paso texto="Al final, el sistema te pregunta si quieres tomar el seguimiento del caso o dejarlo disponible para otro voluntario." />
+          <Paso texto="Haz clic en 'Registrar caso'. Serás redirigido a la ficha del caso donde puedes agregar necesidades." />
         </div>
         <div className="bg-[var(--color-muted)] rounded-xl p-3 text-xs text-gray-500 border border-[var(--color-border)]">
           Si intentas registrar a alguien con una cédula que ya está en el sistema, recibirás una alerta
@@ -142,7 +155,7 @@ export default function AprendizajePage() {
       </Seccion>
 
       {/* Sección 4 */}
-      <Seccion numero="Cuarto" titulo="Cómo gestionar las necesidades" Icon={ClipboardList}>
+      <Seccion numero={4} titulo="Cómo gestionar las necesidades" Icon={ClipboardList}>
         <p className="text-sm text-gray-600 mb-4">
           Cada caso puede tener múltiples necesidades: ropa, medicamentos, alimentos, documentos, etc.
           El seguimiento de cada una es independiente.
@@ -166,16 +179,16 @@ export default function AprendizajePage() {
         </div>
 
         <div className="space-y-3">
-          <Paso numero={1} texto="Abre la ficha del caso y busca la sección 'Necesidades'." />
-          <Paso numero={2} texto="Haz clic en 'Agregar necesidad' para registrar lo que la persona necesita. Puedes describir varios artículos separados por comas: 'pantalón talla 30, franela M, calzado 38'." />
-          <Paso numero={3} texto="Cuando vayas a gestionar una necesidad, haz clic en 'Tomar en gestión'. Esto avisa a los demás que ya alguien está trabajando en eso, evitando duplicar esfuerzos." />
-          <Paso numero={4} texto="Al marcar como entregado, si la descripción tiene varios artículos, el sistema te muestra una lista de verificación. Marca solo lo que realmente se entregó." />
-          <Paso numero={5} texto="Si solo entregaste parte de los artículos, el estado queda como 'Parcial' con el conteo visible (ej: 2/5). Puedes actualizarlo más adelante." />
+          <Paso texto="Abre la ficha del caso y busca la sección 'Necesidades'." />
+          <Paso texto="Haz clic en 'Agregar necesidad' para registrar lo que la persona necesita. Puedes describir varios artículos separados por comas: 'pantalón talla 30, franela M, calzado 38'." />
+          <Paso texto="Cuando vayas a gestionar una necesidad, haz clic en 'Tomar en gestión'. Esto avisa a los demás que ya alguien está trabajando en eso, evitando duplicar esfuerzos." />
+          <Paso texto="Al marcar como entregado, si la descripción tiene varios artículos, el sistema te muestra una lista de verificación. Marca solo lo que realmente se entregó." />
+          <Paso texto="Si solo entregaste parte de los artículos, el estado queda como 'Parcial' con el conteo visible (ej: 2/5). Puedes actualizarlo más adelante." />
         </div>
       </Seccion>
 
       {/* Sección 5 */}
-      <Seccion numero="Quinto" titulo="Trabajo en equipo sin conflictos" Icon={Users}>
+      <Seccion numero={5} titulo="Trabajo en equipo sin conflictos" Icon={Users}>
         <p className="text-sm text-gray-700 leading-relaxed mb-4">
           El sistema está diseñado para que varios voluntarios puedan trabajar en el mismo caso sin pisarse.
         </p>
@@ -205,8 +218,108 @@ export default function AprendizajePage() {
         </div>
       </Seccion>
 
+      {/* ── SECCIÓN COORDINADORES — solo visible para coordinadores/admin ── */}
+      {esCoordinador && (
+        <>
+          <div className="flex items-center gap-3 mt-2">
+            <div className="h-px flex-1 bg-gray-100" />
+            <span className="flex items-center gap-1.5 px-3 py-1 bg-cyan-600 rounded-full text-xs font-semibold text-white">
+              <ShieldCheck className="w-3.5 h-3.5" /> Guía para coordinadores
+            </span>
+            <div className="h-px flex-1 bg-gray-100" />
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800">
+              Las siguientes guías son acciones que <strong>solo los coordinadores</strong> pueden realizar.
+              Si un voluntario necesita alguna de estas acciones, debe contactarte por WhatsApp.
+            </p>
+          </div>
+
+          {/* Coord A: Aprobar / rechazar voluntarios */}
+          <Seccion numero="A" titulo="Aprobar o rechazar voluntarios" Icon={UserCheck} coordinador>
+            <p className="text-sm text-gray-600 mb-4">
+              Cuando alguien se registra, su cuenta queda en estado <strong>Pendiente</strong> hasta que un coordinador la revise.
+              Las solicitudes nuevas aparecen con un punto rojo en el menú <em>Gestión de voluntarios</em>.
+            </p>
+            <div className="space-y-3 mb-4">
+              <Paso texto="Ve al menú lateral → 'Gestión de voluntarios'." />
+              <Paso texto="Las cuentas pendientes aparecen al tope con fondo amarillo. Haz clic en la fila para ver los datos." />
+              <Paso texto="Usa el botón verde ✓ para aprobar. El voluntario podrá entrar al sistema de inmediato." />
+              <Paso texto="Si el voluntario no puede verificarse, usa el botón rojo ✗ para rechazar. Su acceso quedará bloqueado." />
+              <Paso texto="Puedes promover a alguien a coordinador desde el mismo panel usando el botón 'Hacer coordinador'." />
+            </div>
+            <div className="bg-[var(--color-muted)] border border-[var(--color-border)] rounded-xl p-3 text-xs text-gray-500">
+              <strong>Nota:</strong> Revocar el acceso no elimina la cuenta ni los datos que ese voluntario haya registrado.
+              Solo le impide entrar al sistema. Si fue un error, puedes volver a aprobarla.
+            </div>
+          </Seccion>
+
+          {/* Coord B: Restablecer contraseña */}
+          <Seccion numero="B" titulo="Restablecer contraseña de un voluntario" Icon={KeyRound} coordinador>
+            <p className="text-sm text-gray-600 mb-4">
+              Cuando un voluntario olvidó su contraseña y el correo no llega (límite de 2 correos/hora),
+              puedes generarle una <strong>clave temporal</strong> y enviársela por WhatsApp.
+            </p>
+            <div className="space-y-3 mb-4">
+              <Paso texto="Ve a 'Gestión de voluntarios' y busca al voluntario." />
+              <Paso texto="Haz clic en el ícono de llave (🔑) en la fila del voluntario." />
+              <Paso texto="El sistema genera una clave temporal automáticamente y la muestra en pantalla." />
+              <Paso texto="Copia la clave con el botón copiar y envíasela al voluntario por WhatsApp." />
+              <Paso texto="El voluntario entra con esa clave temporal. El sistema lo redirige automáticamente a crear su propia contraseña antes de acceder al dashboard." />
+              <Paso texto="Una vez que el voluntario establece su nueva contraseña, la clave temporal queda inválida." />
+            </div>
+            <div className="bg-cyan-50 border border-cyan-100 rounded-xl p-3 flex items-start gap-2">
+              <MessageCircle className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
+              <p className="text-sm text-cyan-800">
+                <strong>Mensaje sugerido para WhatsApp:</strong><br />
+                <span className="italic">"Hola [nombre], aquí tu clave temporal para Coro Presente: <strong>[clave]</strong>. Entra con ella en coropresente.vercel.app/login — el sistema te pedirá crear tu contraseña propia de inmediato."</span>
+              </p>
+            </div>
+          </Seccion>
+
+          {/* Coord C: Agregar integrantes a un caso */}
+          <Seccion numero="C" titulo="Agregar integrantes a un caso existente" Icon={UserPlus} coordinador>
+            <p className="text-sm text-gray-600 mb-4">
+              Si al registrar un caso faltó un miembro del grupo familiar, o si una persona se une al núcleo después,
+              puedes agregarla sin necesidad de crear un caso nuevo.
+            </p>
+            <div className="space-y-3 mb-4">
+              <Paso texto="Abre la ficha del caso (Casos → nombre del caso)." />
+              <Paso texto="Ve a la sección 'Integrantes' y haz clic en '+ Agregar integrante'." />
+              <Paso texto="Completa los datos: nombre, apellido (obligatorios), cédula, fecha de nacimiento y condición especial si aplica." />
+              <Paso texto="Haz clic en 'Guardar'. El integrante aparecerá en la lista y el contador del caso se actualizará." />
+            </div>
+            <div className="bg-[var(--color-muted)] border border-[var(--color-border)] rounded-xl p-3 text-xs text-gray-500">
+              El sistema verifica que la cédula no esté ya registrada en otro caso. Si hay duplicado, recibirás una alerta
+              para revisar el registro existente.
+            </div>
+          </Seccion>
+
+          {/* Coord D: Asignar colaboradores */}
+          <Seccion numero="D" titulo="Asignar colaboradores a un caso" Icon={UserCog} coordinador>
+            <p className="text-sm text-gray-600 mb-4">
+              Los colaboradores son voluntarios asignados formalmente a un caso para que puedan hacer
+              seguimiento conjunto con el tutor. Solo los coordinadores pueden asignar colaboradores.
+            </p>
+            <div className="space-y-3 mb-4">
+              <Paso texto="Abre la ficha del caso." />
+              <Paso texto="En la sección 'Equipo del caso', haz clic en 'Gestionar colaboradores'." />
+              <Paso texto="Busca al voluntario por nombre en el selector y selecciónalo." />
+              <Paso texto="El voluntario quedará listado como colaborador. Recibirá acceso a la ficha del caso." />
+              <Paso texto="Para remover un colaborador, haz clic en la X junto a su nombre en la lista." />
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800">
+              <strong>Diferencia colaborador vs. tutor:</strong> El tutor es el responsable principal del caso y puede cerrarlo.
+              Los colaboradores apoyan pero no pueden cerrar el caso. Un caso puede tener varios colaboradores pero solo un tutor.
+            </div>
+          </Seccion>
+        </>
+      )}
+
       {/* Sección 6 */}
-      <Seccion numero="Sexto" titulo="Preguntas frecuentes" Icon={HelpCircle}>
+      <Seccion numero={6} titulo="Preguntas frecuentes" Icon={HelpCircle}>
         <div className="space-y-4">
           {[
             {
@@ -228,6 +341,18 @@ export default function AprendizajePage() {
             {
               q: '¿Cómo me aprueba el coordinador?',
               a: 'Después de registrarte, tu cuenta queda en estado "pendiente". Un coordinador recibirá la solicitud y te contactará por WhatsApp para verificar tu identidad. Solo entonces tendrás acceso completo.',
+            },
+            {
+              q: '¿Puedo editar los datos de un integrante después de registrarlo?',
+              a: 'Sí, pero solo coordinadores pueden editar datos de personas (nombre, cédula, fecha de nacimiento, condición especial). Si eres voluntario y necesitas corregir un dato, comunícaselo a tu coordinador.',
+            },
+            {
+              q: '¿Qué diferencia hay entre "revocar" y "eliminar" una cuenta de voluntario?',
+              a: '"Revocar" bloquea el acceso al sistema pero mantiene todos los registros e historial que esa persona generó. No existe "eliminar cuenta" en el sistema para preservar la trazabilidad del trabajo realizado.',
+            },
+            {
+              q: '¿Qué pasa si un voluntario no recibió el correo de restablecimiento de contraseña?',
+              a: 'El sistema tiene un límite de 2 correos por hora. Si el correo no llegó, el coordinador puede generar una clave temporal desde "Gestión de voluntarios" y enviársela por WhatsApp. El voluntario entra con esa clave y el sistema lo obliga a crear una contraseña propia antes de acceder.',
             },
           ].map(({ q, a }, i) => (
             <div key={i} className="border-b border-gray-100 pb-3 last:border-0 last:pb-0">

@@ -123,6 +123,10 @@ function CambiarContrasenaInner() {
               required
               minLength={8}
               placeholder="Mínimo 8 caracteres"
+              autoComplete="new-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className={inputCls + ' pr-10'}
             />
             <button
@@ -145,6 +149,10 @@ function CambiarContrasenaInner() {
               onChange={e => setConfirm(e.target.value)}
               required
               placeholder="Repite la contraseña"
+              autoComplete="new-password"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className={inputCls + ' pr-10'}
             />
           </div>
