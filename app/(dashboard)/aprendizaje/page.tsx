@@ -274,7 +274,7 @@ export default async function AprendizajePage() {
               <MessageCircle className="w-4 h-4 text-cyan-600 shrink-0 mt-0.5" />
               <p className="text-sm text-cyan-800">
                 <strong>Mensaje sugerido para WhatsApp:</strong><br />
-                <span className="italic">"Hola [nombre], aquí tu clave temporal para Coro Presente: <strong>[clave]</strong>. Entra con ella en coropresente.vercel.app/login — el sistema te pedirá crear tu contraseña propia de inmediato."</span>
+                <span className="italic">&ldquo;Hola [nombre], aquí tu clave temporal para Coro Presente: <strong>[clave]</strong>. Entra con ella en coropresente.vercel.app/login — el sistema te pedirá crear tu contraseña propia de inmediato.&rdquo;</span>
               </p>
             </div>
           </Seccion>
