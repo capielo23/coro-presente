@@ -257,6 +257,10 @@ export default function RegistroPage() {
             placeholder="Mínimo 8 caracteres"
             value={form.password}
             onChange={e => set('password', e.target.value)}
+            autoComplete="new-password"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             className={cls(errores.password)}
           />
           <CampoError msg={errores.password} />
