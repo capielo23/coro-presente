@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, User, ChevronDown, ChevronRight, CheckCircle2, Clock, AlertCircle } from 'lucide-react'
+import { Save, User, ChevronDown, ChevronRight, CheckCircle2, Clock, AlertCircle, UserPlus, Trash2 } from 'lucide-react'
 import { CATEGORIA_LABELS } from '@/lib/utils'
 
 const ESTADOS_CASO = [
@@ -38,54 +38,19 @@ const ESTADO_NEC_CONFIG: Record<string, { label: string; cls: string; Icon: Reac
 const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white transition'
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1'
 
-// ── Subcomponente: edición de una persona ─────────────────────────────────────
-function PersonaEditor({
-  persona: initial,
-  onSaved,
-  onCancel,
+const EMPTY_PERSONA_FORM = {
+  nombre: '', apellido: '', cedula: '', edad_aprox: '',
+  sexo: '', rol_familia: '', condicion_especial: '', telefono: '',
+}
+
+// ── Subcomponente: campos compartidos entre editar y agregar ──────────────────
+function PersonaFields({
+  form,
+  set,
 }: {
-  persona: any
-  onSaved: (updated: any) => void
-  onCancel: () => void
+  form: typeof EMPTY_PERSONA_FORM
+  set: (field: string, val: string) => void
 }) {
-  const [form, setForm] = useState({
-    nombre:            initial.nombre ?? '',
-    apellido:          initial.apellido ?? '',
-    cedula:            initial.cedula ?? '',
-    edad_aprox:        initial.edad_aprox?.toString() ?? '',
-    sexo:              initial.sexo ?? '',
-    rol_familia:       initial.rol_familia ?? '',
-    condicion_especial:initial.condicion_especial ?? '',
-    telefono:          initial.telefono ?? '',
-  })
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-
-  function set(field: string, val: string) {
-    setForm(prev => ({ ...prev, [field]: val }))
-  }
-
-  async function save() {
-    if (!form.nombre.trim() || !form.apellido.trim()) {
-      setError('Nombre y apellido son obligatorios.')
-      return
-    }
-    setSaving(true); setError('')
-    const res = await fetch(`/api/personas/${initial.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, edad_aprox: form.edad_aprox || null }),
-    })
-    setSaving(false)
-    if (res.ok) {
-      const updated = await res.json()
-      onSaved(updated)
-    } else {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? 'No se pudo guardar.')
-    }
-  }
-
   return (
     <div className="space-y-3 pt-2">
       <div className="grid grid-cols-2 gap-3">
@@ -134,8 +99,63 @@ function PersonaEditor({
         <label className={labelCls}>Teléfono</label>
         <input value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="04XX-XXXXXXX" className={inputCls} />
       </div>
-      {error && <p className="text-xs text-red-600">{error}</p>}
-      <div className="flex gap-2 pt-1">
+    </div>
+  )
+}
+
+// ── Subcomponente: edición de persona existente ───────────────────────────────
+function PersonaEditor({
+  persona: initial,
+  onSaved,
+  onCancel,
+}: {
+  persona: any
+  onSaved: (updated: any) => void
+  onCancel: () => void
+}) {
+  const [form, setForm] = useState({
+    nombre:             initial.nombre ?? '',
+    apellido:           initial.apellido ?? '',
+    cedula:             initial.cedula ?? '',
+    edad_aprox:         initial.edad_aprox?.toString() ?? '',
+    sexo:               initial.sexo ?? '',
+    rol_familia:        initial.rol_familia ?? '',
+    condicion_especial: initial.condicion_especial ?? '',
+    telefono:           initial.telefono ?? '',
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function set(field: string, val: string) {
+    setForm(prev => ({ ...prev, [field]: val }))
+  }
+
+  async function save() {
+    if (!form.nombre.trim() || !form.apellido.trim()) {
+      setError('Nombre y apellido son obligatorios.')
+      return
+    }
+    setSaving(true); setError('')
+    const res = await fetch(`/api/personas/${initial.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, edad_aprox: form.edad_aprox || null }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      const updated = await res.json()
+      onSaved(updated)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error ?? 'No se pudo guardar.')
+    }
+  }
+
+  return (
+    <>
+      <PersonaFields form={form} set={set} />
+      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      <div className="flex gap-2 pt-3">
         <button
           type="button"
           onClick={save}
@@ -143,7 +163,69 @@ function PersonaEditor({
           className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition"
         >
           <Save className="w-3.5 h-3.5" />
-          {saving ? 'Guardando...' : 'Guardar integrante'}
+          {saving ? 'Guardando...' : 'Guardar cambios'}
+        </button>
+        <button type="button" onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5">
+          Cancelar
+        </button>
+      </div>
+    </>
+  )
+}
+
+// ── Subcomponente: formulario para agregar integrante nuevo ───────────────────
+function AgregarPersonaForm({
+  casoId,
+  onAdded,
+  onCancel,
+}: {
+  casoId: string
+  onAdded: (nueva: any) => void
+  onCancel: () => void
+}) {
+  const [form, setForm] = useState({ ...EMPTY_PERSONA_FORM })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  function set(field: string, val: string) {
+    setForm(prev => ({ ...prev, [field]: val }))
+  }
+
+  async function save() {
+    if (!form.nombre.trim() || !form.apellido.trim()) {
+      setError('Nombre y apellido son obligatorios.')
+      return
+    }
+    setSaving(true); setError('')
+    const res = await fetch(`/api/casos/${casoId}/personas`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...form, edad_aprox: form.edad_aprox || null }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      const nueva = await res.json()
+      onAdded(nueva)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      setError(data.error ?? 'No se pudo agregar el integrante.')
+    }
+  }
+
+  return (
+    <div className="border-2 border-dashed border-cyan-200 rounded-lg p-4 bg-cyan-50/30">
+      <p className="text-xs font-semibold text-cyan-700 mb-1">Nuevo integrante</p>
+      <PersonaFields form={form} set={set} />
+      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
+      <div className="flex gap-2 pt-3">
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition"
+        >
+          <UserPlus className="w-3.5 h-3.5" />
+          {saving ? 'Agregando...' : 'Agregar integrante'}
         </button>
         <button type="button" onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5">
           Cancelar
@@ -168,6 +250,8 @@ export default function EditarCasoForm({
   const [error, setError] = useState('')
   const [personas, setPersonas] = useState<any[]>(initialPersonas)
   const [editandoId, setEditandoId] = useState<string | null>(null)
+  const [agregando, setAgregando] = useState(false)
+  const [eliminandoId, setEliminandoId] = useState<string | null>(null)
   const [necAbierta, setNecAbierta] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -195,6 +279,24 @@ export default function EditarCasoForm({
   function onPersonaSaved(updated: any) {
     setPersonas(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
     setEditandoId(null)
+  }
+
+  function onPersonaAdded(nueva: any) {
+    setPersonas(prev => [...prev, nueva])
+    setAgregando(false)
+  }
+
+  async function eliminarPersona(id: string) {
+    setEliminandoId(id)
+    const res = await fetch(`/api/personas/${id}`, { method: 'DELETE' })
+    setEliminandoId(null)
+    if (res.ok) {
+      setPersonas(prev => prev.filter(p => p.id !== id))
+      if (editandoId === id) setEditandoId(null)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? 'No se pudo eliminar el integrante.')
+    }
   }
 
   return (
@@ -283,53 +385,100 @@ export default function EditarCasoForm({
       </form>
 
       {/* ── Integrantes ──────────────────────────────────────────────────── */}
-      {personas.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
+        <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
             Integrantes · {personas.length}
           </p>
-          {personas.map(persona => (
-            <div key={persona.id} className="border border-gray-100 rounded-lg p-3">
-              {/* Cabecera de la persona */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-8 h-8 shrink-0 rounded-full bg-cyan-50 border border-cyan-100 flex items-center justify-center">
-                    <User className="w-4 h-4 text-cyan-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {persona.nombre} {persona.apellido}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      {[
-                        persona.edad_aprox ? `${persona.edad_aprox} años` : null,
-                        persona.rol_familia ? ROLES_FAMILIA.find(r => r.value === persona.rol_familia)?.label ?? persona.rol_familia : null,
-                        persona.cedula ? `CI: ${persona.cedula}` : null,
-                      ].filter(Boolean).join(' · ')}
-                    </p>
-                  </div>
+          {!agregando && (
+            <button
+              type="button"
+              onClick={() => { setAgregando(true); setEditandoId(null) }}
+              className="flex items-center gap-1.5 text-xs text-cyan-600 hover:text-cyan-800 font-medium border border-cyan-200 hover:border-cyan-400 px-2.5 py-1 rounded-lg transition"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Agregar integrante
+            </button>
+          )}
+        </div>
+
+        {personas.map(persona => (
+          <div key={persona.id} className="border border-gray-100 rounded-lg p-3">
+            {/* Cabecera de la persona */}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 shrink-0 rounded-full bg-cyan-50 border border-cyan-100 flex items-center justify-center">
+                  <User className="w-4 h-4 text-cyan-400" />
                 </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {persona.nombre} {persona.apellido}
+                  </p>
+                  <p className="text-xs text-gray-400">
+                    {[
+                      persona.edad_aprox ? `${persona.edad_aprox} años` : null,
+                      persona.rol_familia ? ROLES_FAMILIA.find(r => r.value === persona.rol_familia)?.label ?? persona.rol_familia : null,
+                      persona.cedula ? `CI: ${persona.cedula}` : null,
+                    ].filter(Boolean).join(' · ')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setEditandoId(editandoId === persona.id ? null : persona.id)}
-                  className="shrink-0 text-xs text-cyan-600 hover:text-cyan-800 font-medium border border-cyan-200 hover:border-cyan-400 px-2.5 py-1 rounded-lg transition"
+                  onClick={() => {
+                    setEditandoId(editandoId === persona.id ? null : persona.id)
+                    setAgregando(false)
+                  }}
+                  className="text-xs text-cyan-600 hover:text-cyan-800 font-medium border border-cyan-200 hover:border-cyan-400 px-2.5 py-1 rounded-lg transition"
                 >
                   {editandoId === persona.id ? 'Cerrar' : 'Editar'}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm(`¿Eliminar a ${persona.nombre} ${persona.apellido} del caso? Esta acción no se puede deshacer.`)) {
+                      eliminarPersona(persona.id)
+                    }
+                  }}
+                  disabled={eliminandoId === persona.id}
+                  className="text-xs text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 px-2 py-1 rounded-lg transition disabled:opacity-40"
+                  title="Eliminar integrante"
+                >
+                  {eliminandoId === persona.id
+                    ? <span className="text-xs">...</span>
+                    : <Trash2 className="w-3.5 h-3.5" />
+                  }
+                </button>
               </div>
-
-              {/* Editor expandible */}
-              {editandoId === persona.id && (
-                <PersonaEditor
-                  persona={persona}
-                  onSaved={onPersonaSaved}
-                  onCancel={() => setEditandoId(null)}
-                />
-              )}
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Editor expandible */}
+            {editandoId === persona.id && (
+              <PersonaEditor
+                persona={persona}
+                onSaved={onPersonaSaved}
+                onCancel={() => setEditandoId(null)}
+              />
+            )}
+          </div>
+        ))}
+
+        {/* Formulario para agregar nuevo integrante */}
+        {agregando && (
+          <AgregarPersonaForm
+            casoId={caso.id}
+            onAdded={onPersonaAdded}
+            onCancel={() => setAgregando(false)}
+          />
+        )}
+
+        {personas.length === 0 && !agregando && (
+          <p className="text-sm text-gray-400 text-center py-4">
+            No hay integrantes registrados en este caso.
+          </p>
+        )}
+      </div>
 
       {/* ── Necesidades ──────────────────────────────────────────────────── */}
       {necesidades.length > 0 && (
