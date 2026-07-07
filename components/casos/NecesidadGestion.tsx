@@ -480,33 +480,19 @@ export default function NecesidadGestion({
       )}
 
       {/* Acciones modo sin ítems */}
-      {!tieneItems && !esRecurrente && (puedeEditar || puedeMarcarEntregas) && (
-        <div className="mt-2.5 space-y-2">
-          <div className="flex flex-wrap gap-2">
-            {puedeEditar && !detallarAbierto && (
-              <button onClick={abrirDetalle} disabled={loading}
-                className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-                <ListChecks className="w-3.5 h-3.5" /> Detallar artículos
-              </button>
-            )}
-            {puedeMarcarEntregas && estado === 'pendiente' && (
-              <button onClick={() => patchEstado('en_gestion')} disabled={loading}
-                className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-                <ClipboardEdit className="w-3.5 h-3.5" /> Tomar en gestión
-              </button>
-            )}
-            {puedeMarcarEntregas && (estado === 'en_gestion' || estado === 'entregado' || estado === 'parcial') && (
-              <button onClick={() => patchEstado('pendiente')} disabled={loading}
-                className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition btn-press">
-                <RotateCcw className="w-3.5 h-3.5" /> Devolver a pendiente
-              </button>
-            )}
-          </div>
-          {puedeEditar && !detallarAbierto && (
-            <p className="text-[11px] text-gray-400 flex items-center gap-1">
-              <ListChecks className="w-3 h-3 shrink-0" />
-              Agrega los artículos específicos con &ldquo;Detallar artículos&rdquo; para poder marcar cada entrega.
-            </p>
+      {!tieneItems && !esRecurrente && puedeMarcarEntregas && (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {estado === 'pendiente' && (
+            <button onClick={() => patchEstado('en_gestion')} disabled={loading}
+              className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
+              <ClipboardEdit className="w-3.5 h-3.5" /> Tomar en gestión
+            </button>
+          )}
+          {(estado === 'en_gestion' || estado === 'entregado' || estado === 'parcial') && (
+            <button onClick={() => patchEstado('pendiente')} disabled={loading}
+              className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition btn-press">
+              <RotateCcw className="w-3.5 h-3.5" /> Devolver a pendiente
+            </button>
           )}
         </div>
       )}

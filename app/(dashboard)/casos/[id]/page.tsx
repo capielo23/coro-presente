@@ -310,6 +310,7 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
               itemsPersona={itemsPorPersona[persona.id] ?? []}
               equipo={equipoCaso}
               puedeEditar={puedeEditar}
+              puedeMarcarEntregas={puedeMarcarEntregas}
               condicionAtendida={condicionAtendidaPorPersona[persona.id] ?? false}
             />
           ))}

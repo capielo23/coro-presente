@@ -17,8 +17,8 @@ function fmtFecha(iso?: string) {
 const selectCls = 'text-xs px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500'
 
 export default function IntegranteCard({
-  persona, itemsPersona, equipo = [], puedeEditar, condicionAtendida = false,
-}: { persona: any; itemsPersona: Entry[]; equipo?: Voluntario[]; puedeEditar: boolean; condicionAtendida?: boolean }) {
+  persona, itemsPersona, equipo = [], puedeEditar, puedeMarcarEntregas = false, condicionAtendida = false,
+}: { persona: any; itemsPersona: Entry[]; equipo?: Voluntario[]; puedeEditar: boolean; puedeMarcarEntregas?: boolean; condicionAtendida?: boolean }) {
   const router = useRouter()
   const [entries, setEntries] = useState<Entry[]>(itemsPersona)
 
@@ -72,8 +72,10 @@ export default function IntegranteCard({
     </select>
   )
 
+  const todoEntregado = total > 0 && entregados === total
+
   return (
-    <div className="border border-gray-200 rounded-lg p-3 text-sm">
+    <div className={`border rounded-lg p-3 text-sm transition-colors ${todoEntregado ? 'border-green-300 bg-green-50/40' : 'border-gray-200'}`}>
       <div className="flex items-start gap-3">
         {persona.foto_signed_url ? (
           <FotoLightbox
@@ -88,7 +90,14 @@ export default function IntegranteCard({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between">
-            <p className="font-semibold text-gray-900">{persona.nombre} {persona.apellido}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-semibold text-gray-900">{persona.nombre} {persona.apellido}</p>
+              {todoEntregado && (
+                <span className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 border border-green-200 px-1.5 py-0.5 rounded-full font-medium">
+                  <CheckCircle2 className="w-3 h-3" /> Todo entregado
+                </span>
+              )}
+            </div>
             <span className="text-xs text-gray-400 ml-2 shrink-0 font-medium">
               {persona.sexo === 'M' ? 'M' : persona.sexo === 'F' ? 'F' : ''}
             </span>
@@ -146,9 +155,9 @@ export default function IntegranteCard({
                     <div className="flex items-start gap-2">
                       <button
                         type="button"
-                        onClick={() => { if (!puedeEditar || loading) return; if (it.entregado) { marcar(entry, false) } else { setEntregandoKey(enProceso ? null : k) } }}
-                        disabled={!puedeEditar || loading}
-                        className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition ${it.entregado ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'} ${puedeEditar ? 'cursor-pointer hover:border-green-500' : 'cursor-default'} disabled:opacity-60`}
+                        onClick={() => { if (!puedeMarcarEntregas || loading) return; if (it.entregado) { marcar(entry, false) } else { setEntregandoKey(enProceso ? null : k) } }}
+                        disabled={!puedeMarcarEntregas || loading}
+                        className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition ${it.entregado ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'} ${puedeMarcarEntregas ? 'cursor-pointer hover:border-green-500' : 'cursor-default'} disabled:opacity-60`}
                         aria-label={it.entregado ? `Desmarcar ${it.texto}` : `Marcar ${it.texto} como entregado`}
                       >
                         {it.entregado && <Check className="w-3 h-3 text-white" />}
@@ -168,7 +177,7 @@ export default function IntegranteCard({
                         )}
                         {it.nota && <p className="text-[11px] text-gray-500 italic">Nota: {it.nota}</p>}
                       </div>
-                      {puedeEditar && it.entregado && (
+                      {puedeMarcarEntregas && it.entregado && (
                         <button type="button" onClick={() => marcar(entry, false)} disabled={loading}
                           className="text-gray-300 hover:text-red-500 transition shrink-0" aria-label="Deshacer entrega">
                           <Undo2 className="w-3.5 h-3.5" />
