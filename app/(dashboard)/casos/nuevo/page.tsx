@@ -351,8 +351,18 @@ export default function NuevoCasoPage() {
     ? 'w-full px-3 py-2.5 border border-red-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-300 focus:border-transparent text-sm bg-red-50 transition'
     : inputCls
 
+  function handleWizardKey(e: React.KeyboardEvent) {
+    if (e.key !== 'Enter') return
+    const tag = (e.target as HTMLElement).tagName
+    const tipo = (e.target as HTMLInputElement).type
+    // Dejar que textarea y los inputs de artículos/items manejen Enter por su cuenta
+    if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') return
+    if ((e.target as HTMLElement).closest('[data-items-input]')) return
+    if (paso < 5) { e.preventDefault(); avanzar() }
+  }
+
   return (
-    <div className="max-w-2xl mx-auto space-y-5">
+    <div className="max-w-2xl mx-auto space-y-5" onKeyDown={handleWizardKey}>
       <div>
         <h2 className="text-2xl font-bold text-gray-900">Registrar nuevo caso</h2>
         <p className="text-gray-500 text-sm mt-1">Completa los datos del afectado o grupo familiar.</p>
@@ -797,7 +807,7 @@ export default function NuevoCasoPage() {
               {/* Artículos de esta necesidad */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Artículos <span className="text-gray-400">(cada uno se marca por separado)</span></label>
-                <div className="space-y-2">
+                <div className="space-y-2" data-items-input>
                   <div className="flex flex-wrap gap-2">
                     <input value={itemDraft.texto} onChange={e => setItemDraft(p => ({ ...p, texto: e.target.value }))}
                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarItemADraft() } }}

@@ -656,8 +656,16 @@ export default function EditarCasoForm({
     </div>
   )
 
+  function handleWizardKey(e: React.KeyboardEvent) {
+    if (e.key !== 'Enter') return
+    const tag = (e.target as HTMLElement).tagName
+    if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') return
+    if ((e.target as HTMLElement).closest('[data-items-input]')) return
+    if (paso < 4) { e.preventDefault(); avanzar() }
+  }
+
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6" onKeyDown={handleWizardKey}>
       {Progreso}
 
       {error && (
