@@ -45,7 +45,7 @@ const personaVacia = (): PersonaForm => ({
 })
 
 // Necesidades definidas desde el registro (Fase 2)
-interface ItemForm { texto: string; cantidad: string; persona_idx: number | null }
+interface ItemForm { texto: string; cantidad: string; persona_idxs: number[] }
 interface NecesidadForm {
   categoria: string
   descripcion: string
@@ -105,22 +105,35 @@ export default function NuevoCasoPage() {
   // Necesidades (Fase 2): se definen desde el registro
   const [necesidades, setNecesidades] = useState<NecesidadForm[]>([])
   const [necDraft, setNecDraft] = useState<NecesidadForm>(necesidadVacia())
-  const [itemDraft, setItemDraft] = useState<ItemForm>({ texto: '', cantidad: '', persona_idx: null })
+  const [itemDraft, setItemDraft] = useState<ItemForm>({ texto: '', cantidad: '', persona_idxs: [] })
 
-  const nombreIntegrante = (idx: number | null) => {
-    if (idx === null || !personas[idx]) return 'Toda la familia'
-    return `${personas[idx].nombre} ${personas[idx].apellido}`.trim() || `Integrante ${idx + 1}`
+  const nombreIntegrante = (idxs: number[]) => {
+    if (idxs.length === 0) return 'Toda la familia'
+    return idxs.map(i => personas[i]?.nombre?.trim() || `Integrante ${i + 1}`).join(', ')
+  }
+  function togglePersonaIdx(idx: number) {
+    setItemDraft(prev => ({
+      ...prev,
+      persona_idxs: prev.persona_idxs.includes(idx)
+        ? prev.persona_idxs.filter(i => i !== idx)
+        : [...prev.persona_idxs, idx],
+    }))
   }
   function agregarItemADraft() {
     const t = itemDraft.texto.trim()
     if (!t) return
-    setNecDraft(prev => ({ ...prev, items: [...prev.items, { ...itemDraft, texto: t }] }))
-    setItemDraft({ texto: '', cantidad: '', persona_idx: itemDraft.persona_idx })
+    if (itemDraft.persona_idxs.length === 0) {
+      setNecDraft(prev => ({ ...prev, items: [...prev.items, { ...itemDraft, texto: t }] }))
+    } else {
+      const nuevos = itemDraft.persona_idxs.map(idx => ({ texto: t, cantidad: itemDraft.cantidad, persona_idxs: [idx] }))
+      setNecDraft(prev => ({ ...prev, items: [...prev.items, ...nuevos] }))
+    }
+    setItemDraft({ texto: '', cantidad: '', persona_idxs: itemDraft.persona_idxs })
   }
   function agregarNecesidadDraft() {
     setNecesidades(prev => [...prev, necDraft])
     setNecDraft(necesidadVacia())
-    setItemDraft({ texto: '', cantidad: '', persona_idx: null })
+    setItemDraft({ texto: '', cantidad: '', persona_idxs: [] })
   }
   function eliminarNecesidad(idx: number) {
     setNecesidades(prev => prev.filter((_, i) => i !== idx))
@@ -312,7 +325,7 @@ export default function NuevoCasoPage() {
         frecuencia: n.es_recurrente ? n.frecuencia : undefined,
         items: n.items.map(it => ({
           texto: it.cantidad ? `${it.texto} ×${it.cantidad}` : it.texto,
-          persona_idx: it.persona_idx,
+          persona_idx: it.persona_idxs.length === 1 ? it.persona_idxs[0] : null,
         })),
       })),
     }
@@ -749,7 +762,7 @@ export default function NuevoCasoPage() {
                         {n.items.map((it, j) => (
                           <li key={j} className="text-xs text-gray-600 flex items-center gap-1.5">
                             <span className="w-1 h-1 rounded-full bg-cyan-500 shrink-0" />
-                            {it.texto}{it.cantidad ? ` ×${it.cantidad}` : ''} <span className="text-cyan-600">· {nombreIntegrante(it.persona_idx)}</span>
+                            {it.texto}{it.cantidad ? ` ×${it.cantidad}` : ''} <span className="text-cyan-600">· {nombreIntegrante(it.persona_idxs)}</span>
                           </li>
                         ))}
                       </ul>
@@ -784,15 +797,38 @@ export default function NuevoCasoPage() {
               {/* Artículos de esta necesidad */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Artículos <span className="text-gray-400">(cada uno se marca por separado)</span></label>
-                <div className="flex flex-wrap gap-2">
-                  <input value={itemDraft.texto} onChange={e => setItemDraft(p => ({ ...p, texto: e.target.value }))}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarItemADraft() } }}
-                    placeholder={ITEM_PLACEHOLDER[necDraft.categoria] ?? 'Ej: Describe el artículo...'} className={`${inputCls} flex-1 min-w-[130px]`} />
-                  <input value={itemDraft.cantidad} onChange={e => setItemDraft(p => ({ ...p, cantidad: e.target.value }))} type="number" min="1" placeholder="Cant." className={`${inputCls} w-20`} />
-                  <select value={itemDraft.persona_idx === null ? '' : String(itemDraft.persona_idx)} onChange={e => setItemDraft(p => ({ ...p, persona_idx: e.target.value === '' ? null : Number(e.target.value) }))} className={`${inputCls} w-auto`}>
-                    <option value="">Toda la familia</option>
-                    {personas.map((p, idx) => <option key={idx} value={idx}>{`${p.nombre} ${p.apellido}`.trim() || `Integrante ${idx + 1}`}</option>)}
-                  </select>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
+                    <input value={itemDraft.texto} onChange={e => setItemDraft(p => ({ ...p, texto: e.target.value }))}
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarItemADraft() } }}
+                      placeholder={ITEM_PLACEHOLDER[necDraft.categoria] ?? 'Ej: Describe el artículo...'} className={`${inputCls} flex-1 min-w-[130px]`} />
+                    <input value={itemDraft.cantidad} onChange={e => setItemDraft(p => ({ ...p, cantidad: e.target.value }))} type="number" min="1" placeholder="Cant." className={`${inputCls} w-20`} />
+                  </div>
+                  {personas.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 items-center">
+                      <span className="text-xs text-gray-400">¿Para quién?</span>
+                      <button
+                        type="button"
+                        onClick={() => setItemDraft(p => ({ ...p, persona_idxs: [] }))}
+                        className={`text-xs px-2.5 py-1 rounded-full border transition ${itemDraft.persona_idxs.length === 0 ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white text-gray-500 border-gray-200 hover:border-cyan-300'}`}
+                      >
+                        Toda la familia
+                      </button>
+                      {personas.map((p, idx) => {
+                        const sel = itemDraft.persona_idxs.includes(idx)
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => togglePersonaIdx(idx)}
+                            className={`text-xs px-2.5 py-1 rounded-full border transition ${sel ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-white text-gray-500 border-gray-200 hover:border-cyan-300'}`}
+                          >
+                            {p.nombre || `Integrante ${idx + 1}`}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                   <button type="button" onClick={agregarItemADraft} className="flex items-center gap-1 text-sm text-cyan-700 border border-cyan-200 bg-white px-2.5 py-2 rounded-lg hover:bg-cyan-100 transition whitespace-nowrap">
                     <Plus className="w-4 h-4" /> Ítem
                   </button>
@@ -801,7 +837,7 @@ export default function NuevoCasoPage() {
                   <ul className="flex flex-wrap gap-1.5 mt-2">
                     {necDraft.items.map((it, j) => (
                       <li key={j} className="flex items-center gap-1 text-xs bg-white text-gray-700 border border-cyan-200 pl-2.5 pr-1 py-1 rounded-full">
-                        {it.texto}{it.cantidad ? ` ×${it.cantidad}` : ''} <span className="text-cyan-600">· {nombreIntegrante(it.persona_idx)}</span>
+                        {it.texto}{it.cantidad ? ` ×${it.cantidad}` : ''} <span className="text-cyan-600">· {nombreIntegrante(it.persona_idxs)}</span>
                         <button type="button" onClick={() => setNecDraft(p => ({ ...p, items: p.items.filter((_, idx) => idx !== j) }))} className="text-gray-400 hover:text-red-500" aria-label="Quitar ítem"><X className="w-3.5 h-3.5" /></button>
                       </li>
                     ))}
