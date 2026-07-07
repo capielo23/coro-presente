@@ -241,12 +241,18 @@ export default function NecesidadGestion({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-gray-800">{CATEGORIA_LABELS[nec.categoria] || nec.categoria}</p>
-            {agregadaDespues
-              ? <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">Agregada {fmtFecha(nec.created_at)}</span>
-              : <span className="text-[10px] bg-gray-50 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full">Inicial</span>}
-            {nec.persona_id && (
+            {agregadaDespues && (
+              <span className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded-full">
+                Agregada {fmtFecha(nec.created_at)}
+              </span>
+            )}
+            {nec.persona_id ? (
               <span className="text-[10px] bg-cyan-50 text-cyan-700 border border-cyan-200 px-1.5 py-0.5 rounded-full flex items-center gap-1">
                 <User className="w-2.5 h-2.5" /> Para {nombrePersona(nec.persona_id)}
+              </span>
+            ) : (
+              <span className="text-[10px] bg-gray-50 text-gray-500 border border-gray-200 px-1.5 py-0.5 rounded-full">
+                Grupo familiar
               </span>
             )}
           </div>
