@@ -75,6 +75,19 @@ export default function NecesidadGestion({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serverKey])
 
+  // Auto-convertir descripción en ítem real si la necesidad no tiene ítems aún
+  useEffect(() => {
+    if (!nec.descripcion || nec.items_entrega?.items?.length || nec.es_recurrente) return
+    fetch('/api/necesidades', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: nec.id, accion: 'desglosar', items: [{ texto: nec.descripcion }] }),
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(row => { if (row?.items_entrega) setData(row.items_entrega) })
+  // Solo al montar — nec.id es estable
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const esRecurrente = !!nec.es_recurrente
   const tieneItems = !esRecurrente && !!data?.items?.length
   const itemsParseables = tieneItems || esRecurrente ? [] : parsearItems(nec.descripcion)
