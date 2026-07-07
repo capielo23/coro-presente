@@ -66,8 +66,8 @@ function personaToForm(p: any): PersonaFormState {
     nombre:             p.nombre ?? '',
     apellido:           p.apellido ?? '',
     cedula:             p.cedula ?? '',
-    edad_aprox:         p.edad_meses ? String(p.edad_meses) : (p.edad_aprox ? String(p.edad_aprox) : ''),
-    edad_unidad:        p.edad_meses ? 'meses' : 'anios',
+    edad_aprox:         p.edad_meses != null ? String(p.edad_meses) : (p.edad_aprox != null ? String(p.edad_aprox) : ''),
+    edad_unidad:        p.edad_meses != null ? 'meses' : 'anios',
     fecha_nacimiento:   p.fecha_nacimiento ?? '',
     sexo:               p.sexo ?? '',
     rol_familia:        p.rol_familia ?? '',
@@ -176,7 +176,7 @@ function CamposPersona({
       </div>
       <div>
         <label className={labelCls}>Edad</label>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-[2fr_1fr] gap-2">
           <input
             type="number"
             min="0"
@@ -184,12 +184,12 @@ function CamposPersona({
             value={form.edad_aprox}
             onChange={e => set('edad_aprox', e.target.value)}
             placeholder="0"
-            className={`${inputCls} flex-1`}
+            className={inputCls}
           />
           <select
             value={form.edad_unidad}
             onChange={e => set('edad_unidad', e.target.value as 'anios' | 'meses')}
-            className={`${inputCls} w-auto`}
+            className={inputCls}
           >
             <option value="anios">Años</option>
             <option value="meses">Meses</option>
