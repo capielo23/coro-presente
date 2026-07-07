@@ -4,10 +4,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   User, UserPlus, Trash2, Check, CheckCircle2,
-  ChevronLeft, ChevronRight, Camera,
+  ChevronLeft, ChevronRight, Camera, X,
 } from 'lucide-react'
-import NecesidadGestion from '@/components/casos/NecesidadGestion'
 import AgregarNecesidad from '@/components/casos/AgregarNecesidad'
+import { CATEGORIA_LABELS } from '@/lib/utils'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -466,6 +466,8 @@ export default function EditarCasoForm({
   const router = useRouter()
   const [paso, setPaso] = useState(1)
   const [sectoresCoro, setSectoresCoro] = useState<string[]>([])
+  const [necesidadesLocales, setNecesidadesLocales] = useState<any[]>(necesidades)
+  const [eliminandoNecId, setEliminandoNecId] = useState<string | null>(null)
 
   const [datosCaso, setDatosCaso] = useState({
     nombre_caso:      caso.nombre_caso ?? '',
@@ -861,31 +863,61 @@ export default function EditarCasoForm({
 
       {/* ── Paso 4: Necesidades ──────────────────────────────────────────── */}
       {paso === 4 && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            Necesidades · {necesidades.length}
+            Necesidades · {necesidadesLocales.length}
           </p>
 
-          {necesidades.length === 0 && (
+          {necesidadesLocales.length === 0 && (
             <p className="text-sm text-gray-400 text-center py-4">
               No hay necesidades registradas aún.
             </p>
           )}
 
-          {necesidades.map((nec: any) => (
-            <NecesidadGestion
-              key={nec.id}
-              nec={nec}
-              equipo={[]}
-              puedeEditar={esAdmin}
-              puedeMarcarEntregas={esAdmin}
-            />
-          ))}
+          {necesidadesLocales.map((nec: any) => {
+            const catLabel = CATEGORIA_LABELS[nec.categoria as keyof typeof CATEGORIA_LABELS] ?? nec.categoria
+            const items: { texto: string }[] = nec.items_entrega?.items ?? []
+            return (
+              <div key={nec.id} className="flex items-start justify-between gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-white">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">{catLabel}</p>
+                  {nec.descripcion && (
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{nec.descripcion}</p>
+                  )}
+                  {items.length > 0 && (
+                    <ul className="mt-1 flex flex-wrap gap-1">
+                      {items.map((it, i) => (
+                        <li key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{it.texto}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                {esAdmin && (
+                  <button
+                    type="button"
+                    disabled={eliminandoNecId === nec.id}
+                    onClick={async () => {
+                      if (!confirm(`¿Eliminar la necesidad "${catLabel}"?`)) return
+                      setEliminandoNecId(nec.id)
+                      await fetch(`/api/necesidades?id=${nec.id}`, { method: 'DELETE' })
+                      setNecesidadesLocales(prev => prev.filter(n => n.id !== nec.id))
+                      setEliminandoNecId(null)
+                    }}
+                    className="shrink-0 text-gray-300 hover:text-red-500 disabled:opacity-40 transition"
+                    aria-label="Eliminar necesidad"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            )
+          })}
 
-          <div className="pt-2">
+          <div className="pt-1">
             <AgregarNecesidad
               casoId={caso.id}
               personas={personas.map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido }))}
+              necesidadesExistentes={necesidadesLocales.map(n => ({ id: n.id, categoria: n.categoria }))}
             />
           </div>
         </div>
