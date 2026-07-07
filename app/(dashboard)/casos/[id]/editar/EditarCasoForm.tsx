@@ -877,10 +877,26 @@ export default function EditarCasoForm({
           {necesidadesLocales.map((nec: any) => {
             const catLabel = CATEGORIA_LABELS[nec.categoria as keyof typeof CATEGORIA_LABELS] ?? nec.categoria
             const items: { texto: string }[] = nec.items_entrega?.items ?? []
+            // Determinar si es "inicial" (registrada ≤10 min después del caso) o si fue agregada después
+            const casoTs = caso.created_at ? new Date(caso.created_at).getTime() : null
+            const necTs  = nec.created_at  ? new Date(nec.created_at).getTime()  : null
+            const esInicial = casoTs && necTs ? (necTs - casoTs) < 10 * 60 * 1000 : true
+            const fechaCorta = nec.created_at
+              ? new Date(nec.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })
+              : null
             return (
               <div key={nec.id} className="flex items-start justify-between gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-white">
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">{catLabel}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-gray-800">{catLabel}</p>
+                    {esInicial ? (
+                      <span className="text-[10px] font-medium bg-gray-100 text-gray-400 rounded-full px-2 py-0.5">Inicial</span>
+                    ) : fechaCorta ? (
+                      <span className="text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">
+                        Agregada el {fechaCorta}
+                      </span>
+                    ) : null}
+                  </div>
                   {nec.descripcion && (
                     <p className="text-xs text-gray-500 mt-0.5 truncate">{nec.descripcion}</p>
                   )}
