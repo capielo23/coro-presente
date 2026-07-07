@@ -749,17 +749,11 @@ export default function NuevoCasoPage() {
             {/* Constructor de una necesidad */}
             <div className="border border-cyan-200 bg-cyan-50 rounded-xl p-3 space-y-3">
               <p className="text-xs font-semibold text-gray-700">Agregar una necesidad</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
-                  <select value={necDraft.categoria} onChange={e => setNecDraft(p => ({ ...p, categoria: e.target.value }))} className={inputCls}>
-                    {Object.entries(CATEGORIA_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Descripción <span className="text-gray-400">(opcional)</span></label>
-                  <input value={necDraft.descripcion} onChange={e => setNecDraft(p => ({ ...p, descripcion: e.target.value }))} placeholder="Ej: medicinas crónicas, ropa por tallas..." className={inputCls} />
-                </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+                <select value={necDraft.categoria} onChange={e => setNecDraft(p => ({ ...p, categoria: e.target.value }))} className={inputCls}>
+                  {Object.entries(CATEGORIA_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
               </div>
 
               <label className="flex items-center gap-2 text-sm text-gray-700">
