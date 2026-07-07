@@ -47,7 +47,7 @@ export default function NecesidadGestion({
   const [deliverer, setDeliverer] = useState('')
   const [periodoAbierto, setPeriodoAbierto] = useState(false)
   const [periodoNota, setPeriodoNota] = useState('')
-  // (marcarAbierto eliminado — el marcado va por ítems)
+  const [simpleCheckAbierto, setSimpleCheckAbierto] = useState(false)
   // Editor para detallar / agregar artículos
   const [detallarAbierto, setDetallarAbierto] = useState(false)
   const [editItems, setEditItems] = useState<{ texto: string; persona_id: string | null }[]>([])
@@ -237,7 +237,7 @@ export default function NecesidadGestion({
               </span>
             )}
           </div>
-          {nec.descripcion && <p className="text-gray-500 text-xs mt-0.5">{nec.descripcion}</p>}
+          {nec.descripcion && esRecurrente && <p className="text-gray-500 text-xs mt-0.5">{nec.descripcion}</p>}
           {esRecurrente && (
             <p className="text-purple-600 text-xs mt-0.5 flex items-center gap-1">
               <RefreshCw className="w-3 h-3" /> Recurrente · {nec.frecuencia}
@@ -481,19 +481,67 @@ export default function NecesidadGestion({
         </div>
       )}
 
-      {/* Entrega registrada en modo simple */}
-      {!tieneItems && !esRecurrente && (estado === 'entregado' || estado === 'parcial') && entregaGuardada && (
-        <p className="text-green-600 text-xs mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> {entregaGuardada}</p>
-      )}
-
-      {/* Sin ítems: solo opción de agregar artículos */}
-      {!tieneItems && !esRecurrente && puedeEditar && !detallarAbierto && (
-        <div className="mt-2.5">
-          <button onClick={abrirDetalle} disabled={loading}
-            className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-            <ListChecks className="w-3.5 h-3.5" /> Agregar artículos
-          </button>
-          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
+      {/* Sin ítems: descripción como checkbox + opción de desglosar */}
+      {!tieneItems && !esRecurrente && (
+        <div className="mt-2.5 space-y-2">
+          {/* La descripción se muestra como ítem checkeable */}
+          {nec.descripcion && (
+            <div>
+              <div className="flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!puedeMarcarEntregas || loading) return
+                    if (estado === 'entregado') { patchEstado('pendiente'); setSimpleCheckAbierto(false) }
+                    else setSimpleCheckAbierto(v => !v)
+                  }}
+                  disabled={!puedeMarcarEntregas || loading}
+                  className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition
+                    ${estado === 'entregado' ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'}
+                    ${puedeMarcarEntregas ? 'cursor-pointer hover:border-green-500' : 'cursor-default'}
+                    disabled:opacity-60`}
+                >
+                  {estado === 'entregado' && <Check className="w-3 h-3 text-white" />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs ${estado === 'entregado' ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                    {nec.descripcion}
+                  </p>
+                  {estado === 'entregado'
+                    ? <p className="text-[11px] text-green-600">✓ {entregaGuardada || 'Equipo CoroAyuda'}</p>
+                    : <p className="text-[11px] text-amber-500">Pendiente</p>
+                  }
+                </div>
+              </div>
+              {simpleCheckAbierto && puedeMarcarEntregas && (
+                <div className="ml-6 mt-1.5 flex flex-wrap items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2">
+                  <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
+                  {SelectorDeliverer}
+                  <button
+                    onClick={async () => { await patchEstado('entregado'); setSimpleCheckAbierto(false) }}
+                    disabled={loading}
+                    className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition btn-press"
+                  >
+                    {loading ? '...' : '✓ Confirmar'}
+                  </button>
+                  <button onClick={() => { setSimpleCheckAbierto(false); setDeliverer('') }} className="text-xs text-gray-400 hover:text-gray-600">
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          {/* Sin descripción ni ítems: invitar a agregar artículos */}
+          {!nec.descripcion && puedeEditar && !detallarAbierto && (
+            <p className="text-xs text-gray-400 italic">Sin artículos definidos</p>
+          )}
+          {puedeEditar && !detallarAbierto && (
+            <button onClick={abrirDetalle} disabled={loading}
+              className="flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-800 transition btn-press">
+              <Plus className="w-3.5 h-3.5" /> {nec.descripcion ? 'Desglosar en artículos' : 'Agregar artículos'}
+            </button>
+          )}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       )}
 
