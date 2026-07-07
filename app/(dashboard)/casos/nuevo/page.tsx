@@ -57,6 +57,19 @@ const necesidadVacia = (): NecesidadForm => ({
   categoria: 'alimentacion', descripcion: '', es_recurrente: false, frecuencia: 'semanal', items: [],
 })
 
+const ITEM_PLACEHOLDER: Record<string, string> = {
+  alimentacion:  'Ej: Arroz, pasta, aceite, leche...',
+  ropa:          'Ej: Franela talla M, zapatos #38...',
+  medicamentos:  'Ej: Paracetamol 500mg, insulina...',
+  traslado:      'Ej: Traslado al hospital, taxi...',
+  alojamiento:   'Ej: Colchón, cobija, sábanas...',
+  hogar:         'Ej: Olla, cubiertos, bombillo...',
+  utiles:        'Ej: Cuadernos, lápices, mochila...',
+  ninos:         'Ej: Pañales, fórmula, juguete...',
+  adulto_mayor:  'Ej: Bastón, pañal adulto, lentes...',
+  otro:          'Ej: Describe el artículo...',
+}
+
 const PASOS = [
   { numero: 1, label: '¿Quién?' },
   { numero: 2, label: 'Ubicación' },
@@ -774,7 +787,7 @@ export default function NuevoCasoPage() {
                 <div className="flex flex-wrap gap-2">
                   <input value={itemDraft.texto} onChange={e => setItemDraft(p => ({ ...p, texto: e.target.value }))}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarItemADraft() } }}
-                    placeholder="Ej: Paracetamol 500mg" className={`${inputCls} flex-1 min-w-[130px]`} />
+                    placeholder={ITEM_PLACEHOLDER[necDraft.categoria] ?? 'Ej: Describe el artículo...'} className={`${inputCls} flex-1 min-w-[130px]`} />
                   <input value={itemDraft.cantidad} onChange={e => setItemDraft(p => ({ ...p, cantidad: e.target.value }))} type="number" min="1" placeholder="Cant." className={`${inputCls} w-20`} />
                   <select value={itemDraft.persona_idx === null ? '' : String(itemDraft.persona_idx)} onChange={e => setItemDraft(p => ({ ...p, persona_idx: e.target.value === '' ? null : Number(e.target.value) }))} className={`${inputCls} w-auto`}>
                     <option value="">Toda la familia</option>
