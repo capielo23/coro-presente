@@ -47,7 +47,7 @@ export default function NecesidadGestion({
   const [deliverer, setDeliverer] = useState('')
   const [periodoAbierto, setPeriodoAbierto] = useState(false)
   const [periodoNota, setPeriodoNota] = useState('')
-  const [marcarAbierto, setMarcarAbierto] = useState(false)
+  // (marcarAbierto eliminado — el marcado va por ítems)
   // Editor para detallar / agregar artículos
   const [detallarAbierto, setDetallarAbierto] = useState(false)
   const [editItems, setEditItems] = useState<{ texto: string; persona_id: string | null }[]>([])
@@ -123,13 +123,19 @@ export default function NecesidadGestion({
     }
   }
 
+  function emitItemChange(it: Item, entregado: boolean) {
+    window.dispatchEvent(new CustomEvent('necesidad-item-change', {
+      detail: { necesidadId: nec.id, itemId: it.id, itemTexto: it.texto, entregado },
+    }))
+  }
+
   async function entregarItem(it: Item) {
     const row = await patch({ accion: 'entregar_item', item_id: it.id, item_texto: it.texto, entregado_por_id: deliverer || undefined })
-    if (row) { setData(row.items_entrega); setEstado(row.estado); setEntregandoKey(null); setDeliverer('') }
+    if (row) { setData(row.items_entrega); setEstado(row.estado); setEntregandoKey(null); setDeliverer(''); emitItemChange(it, true) }
   }
   async function desmarcarItem(it: Item) {
     const row = await patch({ accion: 'desmarcar_item', item_id: it.id, item_texto: it.texto })
-    if (row) { setData(row.items_entrega); setEstado(row.estado) }
+    if (row) { setData(row.items_entrega); setEstado(row.estado); emitItemChange(it, false) }
   }
 
   // Editor para detallar (crear checklist) o agregar artículos a uno existente
@@ -343,14 +349,14 @@ export default function NecesidadGestion({
                             {item.entregado && <Check className="w-3 h-3 text-white" />}
                           </button>
                           <div className="flex-1 min-w-0">
-                            <p className={`text-xs ${item.entregado ? 'text-gray-800' : 'text-gray-600'}`}>{item.texto}</p>
+                            <p className={`text-xs ${item.entregado ? 'line-through text-gray-400' : 'text-gray-700'}`}>{item.texto}</p>
                             {item.entregado ? (
-                              <p className="text-[11px] text-green-700">
-                                Entregó: {item.entregado_por || 'Equipo CoroAyuda'}
-                                {item.marcado_por ? ` · Registró: ${item.marcado_por}` : ''}{item.fecha ? ` · ${fmtFecha(item.fecha)}` : ''}
+                              <p className="text-[11px] text-green-600">
+                                ✓ {item.entregado_por || 'Equipo CoroAyuda'}
+                                {item.fecha ? ` · ${fmtFecha(item.fecha)}` : ''}
                               </p>
                             ) : (
-                              <p className="text-[11px] text-amber-600">Pendiente</p>
+                              <p className="text-[11px] text-amber-500">Pendiente</p>
                             )}
                             {item.nota && <p className="text-[11px] text-gray-500 italic">Nota: {item.nota}</p>}
                           </div>
@@ -480,46 +486,14 @@ export default function NecesidadGestion({
         <p className="text-green-600 text-xs mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> {entregaGuardada}</p>
       )}
 
-      {/* Acciones modo sin ítems — marcado directo */}
-      {!tieneItems && !esRecurrente && (puedeEditar || puedeMarcarEntregas) && (
-        <div className="mt-2.5 space-y-2">
-          <div className="flex flex-wrap gap-2">
-            {puedeEditar && !detallarAbierto && (
-              <button onClick={abrirDetalle} disabled={loading}
-                className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-                <ListChecks className="w-3.5 h-3.5" /> Agregar artículos
-              </button>
-            )}
-            {puedeMarcarEntregas && (estado === 'pendiente' || estado === 'en_gestion') && !marcarAbierto && (
-              <button onClick={() => setMarcarAbierto(true)} disabled={loading}
-                className="flex items-center gap-1 text-xs text-green-700 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg hover:bg-green-100 disabled:opacity-50 transition btn-press">
-                <Check className="w-3.5 h-3.5" /> Marcar como entregado
-              </button>
-            )}
-            {puedeMarcarEntregas && (estado === 'entregado' || estado === 'parcial') && (
-              <button onClick={() => patchEstado('pendiente')} disabled={loading}
-                className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition btn-press">
-                <RotateCcw className="w-3.5 h-3.5" /> Desmarcar
-              </button>
-            )}
-          </div>
-          {puedeMarcarEntregas && marcarAbierto && (
-            <div className="flex flex-wrap items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2">
-              <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
-              {SelectorDeliverer}
-              <button
-                onClick={async () => { await patchEstado('entregado'); setMarcarAbierto(false) }}
-                disabled={loading}
-                className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition btn-press"
-              >
-                {loading ? '...' : '✓ Confirmar entrega'}
-              </button>
-              <button onClick={() => { setMarcarAbierto(false); setDeliverer('') }} className="text-xs text-gray-400 hover:text-gray-600">
-                Cancelar
-              </button>
-            </div>
-          )}
-          {error && <p className="text-xs text-red-600">{error}</p>}
+      {/* Sin ítems: solo opción de agregar artículos */}
+      {!tieneItems && !esRecurrente && puedeEditar && !detallarAbierto && (
+        <div className="mt-2.5">
+          <button onClick={abrirDetalle} disabled={loading}
+            className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
+            <ListChecks className="w-3.5 h-3.5" /> Agregar artículos
+          </button>
+          {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
         </div>
       )}
 

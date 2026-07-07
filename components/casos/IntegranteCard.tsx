@@ -23,12 +23,27 @@ export default function IntegranteCard({
   const [entries, setEntries] = useState<Entry[]>(itemsPersona)
 
   // Sincronizar con datos frescos del servidor tras router.refresh()
-  // La "llave" cambia solo cuando varía el conteo o el estado de entrega real
   const serverKey = `${itemsPersona.length}:${itemsPersona.filter(e => e.item.entregado).length}`
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setEntries(itemsPersona) }, [serverKey])
 
-  const [abierto, setAbierto] = useState(false)
+  // Actualización en tiempo real cuando NecesidadGestion marca/desmarca un ítem
+  useEffect(() => {
+    function handler(e: Event) {
+      const { necesidadId, itemId, itemTexto, entregado } = (e as CustomEvent).detail
+      setEntries(prev => prev.map(entry => {
+        if (entry.necesidadId !== necesidadId) return entry
+        if (entry.item.id === itemId || entry.item.texto === itemTexto) {
+          return { ...entry, item: { ...entry.item, entregado } }
+        }
+        return entry
+      }))
+    }
+    window.addEventListener('necesidad-item-change', handler)
+    return () => window.removeEventListener('necesidad-item-change', handler)
+  }, [])
+
+  const [abierto, setAbierto] = useState(itemsPersona.length > 0)
   const [entregandoKey, setEntregandoKey] = useState<string | null>(null)
   const [deliverer, setDeliverer] = useState('')
   const [notaItem, setNotaItem] = useState('')
@@ -163,17 +178,16 @@ export default function IntegranteCard({
                         {it.entregado && <Check className="w-3 h-3 text-white" />}
                       </button>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-xs ${it.entregado ? 'text-gray-800' : 'text-gray-600'}`}>
+                        <p className={`text-xs ${it.entregado ? 'line-through text-gray-400' : 'text-gray-700'}`}>
                           {it.texto}
-                          <span className="text-gray-400"> · {CATEGORIA_LABELS[entry.categoria] || entry.categoria}</span>
+                          <span className={`not-italic ${it.entregado ? 'text-gray-300' : 'text-gray-400'}`}> · {CATEGORIA_LABELS[entry.categoria] || entry.categoria}</span>
                         </p>
                         {it.entregado ? (
-                          <p className="text-[11px] text-green-700">
-                            Entregó: {it.entregado_por || 'Equipo CoroAyuda'}
-                            {it.marcado_por ? ` · Registró: ${it.marcado_por}` : ''}{it.fecha ? ` · ${fmtFecha(it.fecha)}` : ''}
+                          <p className="text-[11px] text-green-600">
+                            ✓ {it.entregado_por || 'Equipo CoroAyuda'}{it.fecha ? ` · ${fmtFecha(it.fecha)}` : ''}
                           </p>
                         ) : (
-                          <p className="text-[11px] text-amber-600">Pendiente</p>
+                          <p className="text-[11px] text-amber-500">Pendiente</p>
                         )}
                         {it.nota && <p className="text-[11px] text-gray-500 italic">Nota: {it.nota}</p>}
                       </div>
