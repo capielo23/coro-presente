@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS, ESTADO_NECESIDAD_COLORS } from '@/lib/utils'
-import { RefreshCw, Check, RotateCcw, ClipboardEdit, UserCog, ListChecks, Undo2, PackageCheck, User, Plus, X, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { RefreshCw, Check, RotateCcw, UserCog, ListChecks, Undo2, PackageCheck, User, Plus, X, Pencil, Trash2, AlertCircle } from 'lucide-react'
 
 interface Item { id?: string; texto: string; persona_id?: string | null; persona_nombre?: string | null; entregado: boolean; entregado_por?: string | null; marcado_por?: string | null; fecha?: string; nota?: string | null }
 interface ItemsData { items: Item[]; total: number; entregados: number; notas?: string }
@@ -47,6 +47,7 @@ export default function NecesidadGestion({
   const [deliverer, setDeliverer] = useState('')
   const [periodoAbierto, setPeriodoAbierto] = useState(false)
   const [periodoNota, setPeriodoNota] = useState('')
+  const [marcarAbierto, setMarcarAbierto] = useState(false)
   // Editor para detallar / agregar artículos
   const [detallarAbierto, setDetallarAbierto] = useState(false)
   const [editItems, setEditItems] = useState<{ texto: string; persona_id: string | null }[]>([])
@@ -479,38 +480,48 @@ export default function NecesidadGestion({
         <p className="text-green-600 text-xs mt-1 flex items-center gap-1"><Check className="w-3 h-3" /> {entregaGuardada}</p>
       )}
 
-      {/* Acciones modo sin ítems */}
+      {/* Acciones modo sin ítems — marcado directo */}
       {!tieneItems && !esRecurrente && (puedeEditar || puedeMarcarEntregas) && (
         <div className="mt-2.5 space-y-2">
           <div className="flex flex-wrap gap-2">
             {puedeEditar && !detallarAbierto && (
               <button onClick={abrirDetalle} disabled={loading}
                 className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-                <ListChecks className="w-3.5 h-3.5" /> Detallar artículos
+                <ListChecks className="w-3.5 h-3.5" /> Agregar artículos
               </button>
             )}
-            {puedeMarcarEntregas && estado === 'pendiente' && (
-              <button onClick={() => patchEstado('en_gestion')} disabled={loading}
-                className="flex items-center gap-1 text-xs text-cyan-700 border border-cyan-200 bg-cyan-50 px-2.5 py-1 rounded-lg hover:bg-cyan-100 disabled:opacity-50 transition btn-press">
-                <ClipboardEdit className="w-3.5 h-3.5" /> Tomar en gestión
+            {puedeMarcarEntregas && (estado === 'pendiente' || estado === 'en_gestion') && !marcarAbierto && (
+              <button onClick={() => setMarcarAbierto(true)} disabled={loading}
+                className="flex items-center gap-1 text-xs text-green-700 border border-green-200 bg-green-50 px-2.5 py-1 rounded-lg hover:bg-green-100 disabled:opacity-50 transition btn-press">
+                <Check className="w-3.5 h-3.5" /> Marcar como entregado
               </button>
             )}
-            {puedeMarcarEntregas && (estado === 'en_gestion' || estado === 'entregado' || estado === 'parcial') && (
+            {puedeMarcarEntregas && (estado === 'entregado' || estado === 'parcial') && (
               <button onClick={() => patchEstado('pendiente')} disabled={loading}
                 className="flex items-center gap-1 text-xs text-gray-500 border border-gray-200 px-2.5 py-1 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition btn-press">
-                <RotateCcw className="w-3.5 h-3.5" /> Devolver a pendiente
+                <RotateCcw className="w-3.5 h-3.5" /> Desmarcar
               </button>
             )}
           </div>
-          {puedeEditar && !detallarAbierto && (
-            <p className="text-[11px] text-gray-400 flex items-center gap-1">
-              <ListChecks className="w-3 h-3 shrink-0" />
-              Agrega los artículos específicos con &ldquo;Detallar artículos&rdquo; para poder marcar cada entrega.
-            </p>
+          {puedeMarcarEntregas && marcarAbierto && (
+            <div className="flex flex-wrap items-center gap-2 bg-green-50 border border-green-200 rounded-lg p-2">
+              <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
+              {SelectorDeliverer}
+              <button
+                onClick={async () => { await patchEstado('entregado'); setMarcarAbierto(false) }}
+                disabled={loading}
+                className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition btn-press"
+              >
+                {loading ? '...' : '✓ Confirmar entrega'}
+              </button>
+              <button onClick={() => { setMarcarAbierto(false); setDeliverer('') }} className="text-xs text-gray-400 hover:text-gray-600">
+                Cancelar
+              </button>
+            </div>
           )}
+          {error && <p className="text-xs text-red-600">{error}</p>}
         </div>
       )}
-      {!tieneItems && !esRecurrente && error && <p className="text-xs text-red-600 mt-1">{error}</p>}
 
       {/* Editor para detallar / agregar artículos (con dueño por miembro) */}
       {detallarAbierto && puedeEditar && (
