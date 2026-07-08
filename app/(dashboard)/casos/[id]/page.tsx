@@ -322,7 +322,13 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
           <h3 className="font-semibold text-gray-800">
             Necesidades ({caso.necesidades?.length ?? 0})
           </h3>
-          {esAdmin && <AgregarNecesidad casoId={caso.id} personas={caso.personas ?? []} />}
+          {esAdmin && (
+            <AgregarNecesidad
+              casoId={caso.id}
+              personas={caso.personas ?? []}
+              necesidadesExistentes={(caso.necesidades ?? []).map((n: any) => ({ id: n.id, categoria: n.categoria }))}
+            />
+          )}
         </div>
         <p className="text-xs text-gray-400 mb-4">
           Registra aquí qué necesita esta familia: alimentos, medicamentos, ropa, traslado, etc. Marca cada ítem como entregado cuando se resuelva.
