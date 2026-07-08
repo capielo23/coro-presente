@@ -1,0 +1,33 @@
+# Verificación automática de cada PR (Ley 6 del CLAUDE.md)
+# Corre tipos, lint y build completo. Si algo falla, el PR se marca en rojo.
+# Usa credenciales de relleno: el build no necesita la base de datos real.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verificar:
+    name: Tipos, lint y build
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: placeholder-service-key
+      SUPABASE_STORAGE_BUCKET: placeholder
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Instalar dependencias
+        run: npm ci
+      - name: Chequeo de tipos
+        run: npx tsc --noEmit
+      - name: Lint
+        run: npm run lint
+      - name: Build de producción
+        run: npm run build
