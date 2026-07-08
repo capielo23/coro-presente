@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { UserPlus, X, Users, ChevronDown } from 'lucide-react'
+import { UserPlus, X, Users, ChevronDown, CheckCircle2 } from 'lucide-react'
 
 interface Voluntario {
   id: string
@@ -14,6 +14,8 @@ interface Props {
   voluntariosDisponibles: Voluntario[]
 }
 
+const MAX_COLABORADORES = 3
+
 export default function GestionColaboradores({ casoId, colaboradores, voluntariosDisponibles }: Props) {
   const router = useRouter()
   const [abierto, setAbierto] = useState(false)
@@ -21,9 +23,16 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
   const [loading, setLoading] = useState(false)
   const [removiendo, setRemoviendo] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [exito, setExito] = useState('')
 
   const colaboradoresIds = new Set(colaboradores.map(c => c.id))
   const disponibles = voluntariosDisponibles.filter(v => !colaboradoresIds.has(v.id))
+  const lleno = colaboradores.length >= MAX_COLABORADORES
+
+  function mostrarExito(msg: string) {
+    setExito(msg)
+    setTimeout(() => setExito(''), 3500)
+  }
 
   async function agregar() {
     if (!seleccionado) return
@@ -35,7 +44,9 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
       body: JSON.stringify({ voluntario_id: seleccionado }),
     })
     if (res.ok) {
+      const nombre = disponibles.find(v => v.id === seleccionado)?.nombre_completo ?? 'Colaborador'
       setSeleccionado('')
+      mostrarExito(`${nombre} agregado al equipo`)
       router.refresh()
     } else {
       const data = await res.json().catch(() => ({}))
@@ -44,7 +55,7 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
     setLoading(false)
   }
 
-  async function quitar(voluntarioId: string) {
+  async function quitar(voluntarioId: string, nombre: string) {
     setRemoviendo(voluntarioId)
     setError('')
     const res = await fetch(`/api/casos/${casoId}/colaborar`, {
@@ -53,6 +64,7 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
       body: JSON.stringify({ voluntario_id: voluntarioId }),
     })
     if (res.ok) {
+      mostrarExito(`${nombre} quitado del equipo`)
       router.refresh()
     } else {
       setError('Error al quitar colaborador')
@@ -73,7 +85,16 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
 
       {abierto && (
         <div className="mt-3 space-y-3">
-          {/* Colaboradores actuales con botón de quitar */}
+          {/* Contador y colaboradores actuales */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-400">
+              {colaboradores.length}/{MAX_COLABORADORES} colaboradores
+            </span>
+            {lleno && (
+              <span className="text-xs text-amber-600 font-medium">Límite alcanzado</span>
+            )}
+          </div>
+
           {colaboradores.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {colaboradores.map(c => (
@@ -83,7 +104,7 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
                 >
                   {c.nombre}
                   <button
-                    onClick={() => quitar(c.id)}
+                    onClick={() => quitar(c.id, c.nombre)}
                     disabled={removiendo === c.id}
                     className="text-cyan-400 hover:text-red-500 transition disabled:opacity-50"
                     title="Quitar colaborador"
@@ -97,8 +118,8 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
             <p className="text-xs text-gray-400">Ningún colaborador agregado aún.</p>
           )}
 
-          {/* Agregar nuevo */}
-          {disponibles.length > 0 && (
+          {/* Agregar nuevo — solo si no se alcanzó el límite */}
+          {!lleno && disponibles.length > 0 && (
             <div className="flex gap-2 items-center">
               <select
                 value={seleccionado}
@@ -121,6 +142,15 @@ export default function GestionColaboradores({ casoId, colaboradores, voluntario
             </div>
           )}
 
+          {/* Feedback de éxito */}
+          {exito && (
+            <p className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+              {exito}
+            </p>
+          )}
+
+          {/* Error */}
           {error && <p className="text-xs text-red-500">{error}</p>}
         </div>
       )}

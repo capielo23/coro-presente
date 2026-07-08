@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
+const MAX_COLABORADORES_POR_CASO = 3
+const MAX_SLOTS_POR_VOLUNTARIO = 3
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -14,7 +17,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
   }
 
-  // Solo coordinadores/admins pueden asignar colaboradores
   const esGestor = ['admin', 'coordinador'].includes(vol.rol) || !!vol.puede_aprobar_coordinadores
   if (!esGestor) {
     return NextResponse.json({ error: 'Solo coordinadores pueden asignar colaboradores a un caso' }, { status: 403 })
@@ -26,13 +28,28 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (body?.voluntario_id) targetVoluntarioId = body.voluntario_id
   } catch { /* body vacío — usa el propio usuario */ }
 
-  // Límite: máximo 5 casos activos como colaborador
-  const { count: yaComoColaborador } = await admin
+  // Verificar límite de colaboradores por caso (máx. 3)
+  const { count: colaboradoresEnCaso } = await admin
     .from('caso_colaboradores').select('*', { count: 'exact', head: true })
-    .eq('voluntario_id', targetVoluntarioId)
-  if ((yaComoColaborador ?? 0) >= 5) {
+    .eq('caso_id', params.id)
+  if ((colaboradoresEnCaso ?? 0) >= MAX_COLABORADORES_POR_CASO) {
     return NextResponse.json(
-      { error: 'Este voluntario ha alcanzado el límite de 5 casos como colaborador.' },
+      { error: `Este caso ya tiene el máximo de ${MAX_COLABORADORES_POR_CASO} colaboradores.` },
+      { status: 409 }
+    )
+  }
+
+  // Verificar capacidad del voluntario: tutorías activas + colaboraciones no deben superar 3
+  const [{ count: comoTutor }, { count: comoColaborador }] = await Promise.all([
+    admin.from('casos').select('*', { count: 'exact', head: true })
+      .eq('tutor_id', targetVoluntarioId).neq('estado', 'cerrado'),
+    admin.from('caso_colaboradores').select('*', { count: 'exact', head: true })
+      .eq('voluntario_id', targetVoluntarioId),
+  ])
+  const totalSlots = (comoTutor ?? 0) + (comoColaborador ?? 0)
+  if (totalSlots >= MAX_SLOTS_POR_VOLUNTARIO) {
+    return NextResponse.json(
+      { error: `Este voluntario ya tiene ${totalSlots} caso(s) asignados y no puede recibir más (límite: ${MAX_SLOTS_POR_VOLUNTARIO}).` },
       { status: 409 }
     )
   }
@@ -44,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   })
 
   if (error && error.code === '23505') {
-    return NextResponse.json({ error: 'Ya eres colaborador de este caso' }, { status: 409 })
+    return NextResponse.json({ error: 'Este voluntario ya es colaborador de este caso' }, { status: 409 })
   }
   if (error) {
     console.error('[colaborar POST] Supabase error:', error.code, error.message)
