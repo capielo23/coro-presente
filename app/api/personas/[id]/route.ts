@@ -27,7 +27,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   const body = await request.json()
 
   const camposPermitidos = [
-    'nombre', 'apellido', 'cedula', 'edad_aprox',
+    'nombre', 'apellido', 'cedula', 'edad_aprox', 'edad_meses',
+    'fecha_nacimiento', 'foto_url',
     'sexo', 'rol_familia', 'condicion_especial', 'telefono',
   ]
   const update: Record<string, unknown> = {}

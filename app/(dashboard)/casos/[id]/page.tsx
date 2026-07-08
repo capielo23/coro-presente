@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { notFound } from 'next/navigation'
 import { ESTADO_CASO_COLORS, ESTADO_CASO_LABELS, CATEGORIA_LABELS } from '@/lib/utils'
 import AgregarNecesidad from '@/components/casos/AgregarNecesidad'
-import NecesidadGestion from '@/components/casos/NecesidadGestion'
+import FamiliaGeneralCard from '@/components/casos/FamiliaGeneralCard'
 import CampoEditable from '@/components/casos/CampoEditable'
 import TutorActions from '@/components/casos/TutorActions'
 import AsignarTutor from '@/components/casos/AsignarTutor'
@@ -169,6 +169,21 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
     }
   })
 
+  // Artículos para toda la familia (sin persona_id asignada)
+  const itemsGenerales: { necesidadId: string; categoria: string; item: any }[] = []
+  ;(caso.necesidades ?? []).forEach((nec: any) => {
+    const necResuelta = nec.estado === 'entregado'
+    ;(nec.items_entrega?.items ?? []).forEach((item: any) => {
+      if (!item?.persona_id) {
+        itemsGenerales.push({
+          necesidadId: nec.id,
+          categoria: nec.categoria,
+          item: necResuelta ? { ...item, entregado: true } : item,
+        })
+      }
+    })
+  })
+
   // condicionAtendida: todos los ítems del integrante (directos o fallback) están entregados
   const condicionAtendidaPorPersona: Record<string, boolean> = {}
   ;(caso.personas ?? []).forEach((p: any) => {
@@ -297,30 +312,11 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
         )}
       </div>
 
-      {/* Integrantes */}
+      {/* Integrantes y necesidades — vista unificada */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <h3 className="font-semibold text-gray-800 mb-4">
-          Integrantes ({caso.personas?.length ?? 0})
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {personasConFoto.map((persona: any) => (
-            <IntegranteCard
-              key={persona.id}
-              persona={persona}
-              itemsPersona={itemsPorPersona[persona.id] ?? []}
-              equipo={equipoCaso}
-              puedeEditar={puedeEditar}
-              condicionAtendida={condicionAtendidaPorPersona[persona.id] ?? false}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Necesidades */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <h3 className="font-semibold text-gray-800">
-            Necesidades ({caso.necesidades?.length ?? 0})
+            Integrantes ({caso.personas?.length ?? 0})
           </h3>
           {esAdmin && (
             <AgregarNecesidad
@@ -330,29 +326,27 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
             />
           )}
         </div>
-        <p className="text-xs text-gray-400 mb-4">
-          Registra aquí qué necesita esta familia: alimentos, medicamentos, ropa, traslado, etc. Marca cada ítem como entregado cuando se resuelva.
-        </p>
-
-        {caso.necesidades && caso.necesidades.length > 0 ? (
-          <div className="space-y-2">
-            {caso.necesidades.map((nec: any) => (
-              <NecesidadGestion
-                key={nec.id}
-                nec={nec}
-                puedeEditar={puedeEditar}
-                puedeMarcarEntregas={puedeMarcarEntregas}
-                equipo={equipoCaso}
-                entregas={entregasPorNec[nec.id] ?? []}
-                casoCreatedAt={caso.created_at}
-                personas={caso.personas ?? []}
-              />
-            ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {personasConFoto.map((persona: any) => (
+            <IntegranteCard
+              key={persona.id}
+              persona={persona}
+              itemsPersona={itemsPorPersona[persona.id] ?? []}
+              equipo={equipoCaso}
+              puedeEditar={puedeEditar}
+              puedeMarcarEntregas={puedeMarcarEntregas}
+              condicionAtendida={condicionAtendidaPorPersona[persona.id] ?? false}
+            />
+          ))}
+        </div>
+        {itemsGenerales.length > 0 && (
+          <div className="mt-3">
+            <FamiliaGeneralCard
+              items={itemsGenerales}
+              equipo={equipoCaso}
+              puedeMarcarEntregas={puedeMarcarEntregas}
+            />
           </div>
-        ) : (
-          <p className="text-gray-400 text-sm text-center py-4">
-            No hay necesidades registradas. Agrega la primera.
-          </p>
         )}
       </div>
 

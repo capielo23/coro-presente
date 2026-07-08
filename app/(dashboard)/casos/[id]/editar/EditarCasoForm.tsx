@@ -1,21 +1,28 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Save, User, ChevronDown, ChevronRight, CheckCircle2, Clock, AlertCircle, UserPlus, Trash2 } from 'lucide-react'
+import {
+  User, Users, UserPlus, Trash2, Check, CheckCircle2,
+  ChevronLeft, ChevronRight, Camera, X, Pencil, Plus,
+} from 'lucide-react'
+import AgregarNecesidad from '@/components/casos/AgregarNecesidad'
 import { CATEGORIA_LABELS } from '@/lib/utils'
+import ToastContainer, { useToast } from '@/components/ui/ToastContainer'
 
-const ESTADOS_CASO = [
-  { value: 'activo',  label: 'Activo — en gestión activa' },
-  { value: 'critico', label: 'Crítico — urgencia alta' },
-  { value: 'estable', label: 'Estable — sin urgencia inmediata' },
-  { value: 'cerrado', label: 'Cerrado — caso resuelto' },
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const ESTADOS_VENEZUELA = [
+  'Amazonas','Anzoátegui','Apure','Aragua','Barinas','Bolívar','Carabobo',
+  'Cojedes','Delta Amacuro','Falcón','Guárico','Lara','Mérida','Miranda',
+  'Monagas','Nueva Esparta','Portuguesa','Sucre','Táchira','Trujillo',
+  'Vargas','Yaracuy','Zulia','Distrito Capital',
 ]
 
 const TIPOS_ALOJAMIENTO = [
-  { value: 'casa_familiar', label: 'Casa de familiar' },
+  { value: 'casa_familiar', label: 'Casa de un familiar o conocido' },
   { value: 'albergue',      label: 'Albergue oficial' },
-  { value: 'iglesia',       label: 'Iglesia / comunitario' },
+  { value: 'iglesia',       label: 'Iglesia / centro comunitario' },
   { value: 'hotel',         label: 'Hotel / posada' },
   { value: 'otro',          label: 'Otro' },
 ]
@@ -29,49 +36,167 @@ const ROLES_FAMILIA = [
   { value: 'otro',         label: 'Otro' },
 ]
 
-const ESTADO_NEC_CONFIG: Record<string, { label: string; cls: string; Icon: React.FC<{ className?: string }> }> = {
-  pendiente:   { label: 'Pendiente',  cls: 'bg-amber-100 text-amber-700',  Icon: ({ className }) => <Clock className={className} /> },
-  en_gestion:  { label: 'En gestión', cls: 'bg-indigo-100 text-indigo-700', Icon: ({ className }) => <AlertCircle className={className} /> },
-  entregado:   { label: 'Entregado',  cls: 'bg-green-100 text-green-700',  Icon: ({ className }) => <CheckCircle2 className={className} /> },
-}
+const ESTADOS_CASO = [
+  { value: 'activo',  label: 'Activo — en gestión activa' },
+  { value: 'critico', label: 'Crítico — urgencia alta' },
+  { value: 'estable', label: 'Estable — sin urgencia inmediata' },
+  { value: 'cerrado', label: 'Cerrado — caso resuelto' },
+]
+
+const PASOS = [
+  { numero: 1, label: 'General' },
+  { numero: 2, label: 'Ubicación' },
+  { numero: 3, label: 'Personas' },
+  { numero: 4, label: 'Necesidades' },
+]
 
 const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white transition'
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1'
 
-const EMPTY_PERSONA_FORM = {
-  nombre: '', apellido: '', cedula: '', edad_aprox: '',
-  sexo: '', rol_familia: '', condicion_especial: '', telefono: '',
+// ── PersonaEditor ─────────────────────────────────────────────────────────────
+
+interface PersonaFormState {
+  nombre: string; apellido: string; cedula: string
+  edad_aprox: string; edad_unidad: 'anios' | 'meses'
+  fecha_nacimiento: string; sexo: string
+  rol_familia: string; condicion_especial: string; telefono: string
 }
 
-// ── Subcomponente: campos compartidos entre editar y agregar ──────────────────
-function PersonaFields({
+function personaToForm(p: any): PersonaFormState {
+  return {
+    nombre:             p.nombre ?? '',
+    apellido:           p.apellido ?? '',
+    cedula:             p.cedula ?? '',
+    edad_aprox:         p.edad_meses != null ? String(p.edad_meses) : (p.edad_aprox != null ? String(p.edad_aprox) : ''),
+    edad_unidad:        p.edad_meses != null ? 'meses' : 'anios',
+    fecha_nacimiento:   p.fecha_nacimiento ?? '',
+    sexo:               p.sexo ?? '',
+    rol_familia:        p.rol_familia ?? '',
+    condicion_especial: p.condicion_especial ?? '',
+    telefono:           p.telefono ?? '',
+  }
+}
+
+async function subirFoto(file: File): Promise<string | undefined> {
+  const fd = new FormData()
+  fd.append('file', file)
+  const res = await fetch('/api/upload-foto', { method: 'POST', body: fd })
+  if (!res.ok) return undefined
+  return (await res.json()).path as string
+}
+
+function FotoInput({
+  preview,
+  onSelect,
+}: {
+  preview: string | null
+  onSelect: (file: File | null) => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+  return (
+    <div className="flex items-start gap-3">
+      <div className="shrink-0">
+        {preview ? (
+          <img src={preview} alt="Foto" className="w-16 h-16 rounded-lg object-cover border border-gray-200" />
+        ) : (
+          <div className="w-16 h-16 rounded-lg bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center">
+            <User className="w-6 h-6 text-gray-300" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1">
+        <p className={labelCls}>Foto <span className="text-gray-400 font-normal">(opcional)</span></p>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => onSelect(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="flex items-center gap-1.5 text-xs text-cyan-700 border border-cyan-200 bg-white hover:bg-cyan-50 px-3 py-1.5 rounded-lg transition"
+        >
+          <Camera className="w-3.5 h-3.5" />
+          {preview ? 'Cambiar foto' : 'Agregar foto'}
+        </button>
+        {preview && (
+          <button
+            type="button"
+            onClick={() => onSelect(null)}
+            className="ml-2 text-xs text-gray-400 hover:text-red-500 transition"
+          >
+            Quitar
+          </button>
+        )}
+        <p className="text-xs text-gray-400 mt-1">JPG, PNG · máx. 5 MB</p>
+      </div>
+    </div>
+  )
+}
+
+function CamposPersona({
   form,
   set,
 }: {
-  form: typeof EMPTY_PERSONA_FORM
-  set: (field: string, val: string) => void
+  form: PersonaFormState
+  set: (f: keyof PersonaFormState, v: string) => void
 }) {
   return (
-    <div className="space-y-3 pt-2">
+    <>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={labelCls}>Nombre *</label>
+          <label className={labelCls}>Nombre <span className="text-red-500">*</span></label>
           <input value={form.nombre} onChange={e => set('nombre', e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>Apellido *</label>
+          <label className={labelCls}>Apellido <span className="text-red-500">*</span></label>
           <input value={form.apellido} onChange={e => set('apellido', e.target.value)} className={inputCls} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Cédula</label>
-          <input value={form.cedula} onChange={e => set('cedula', e.target.value)} placeholder="V-12345678" className={inputCls} />
+          <input
+            value={form.cedula}
+            onChange={e => set('cedula', e.target.value)}
+            placeholder="V-12345678"
+            className={inputCls}
+          />
         </div>
         <div>
-          <label className={labelCls}>Edad (aprox.)</label>
-          <input type="number" min="0" max="120" value={form.edad_aprox} onChange={e => set('edad_aprox', e.target.value)} className={inputCls} />
+          <label className={labelCls}>Fecha de nacimiento</label>
+          <input
+            type="date"
+            value={form.fecha_nacimiento}
+            onChange={e => set('fecha_nacimiento', e.target.value)}
+            className={inputCls}
+          />
         </div>
+      </div>
+      <div>
+        <label className={labelCls}>Edad</label>
+        <div className="grid grid-cols-[2fr_1fr] gap-2">
+          <input
+            type="number"
+            min="0"
+            max="999"
+            value={form.edad_aprox}
+            onChange={e => set('edad_aprox', e.target.value)}
+            placeholder="0"
+            className={inputCls}
+          />
+          <select
+            value={form.edad_unidad}
+            onChange={e => set('edad_unidad', e.target.value as 'anios' | 'meses')}
+            className={inputCls}
+          >
+            <option value="anios">Años</option>
+            <option value="meses">Meses</option>
+          </select>
+        </div>
+        <p className="text-xs text-gray-400 mt-1">Usa meses para bebés menores de 2 años.</p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -92,42 +217,52 @@ function PersonaFields({
         </div>
       </div>
       <div>
-        <label className={labelCls}>Condición especial (salud, movilidad, etc.)</label>
-        <input value={form.condicion_especial} onChange={e => set('condicion_especial', e.target.value)} placeholder="Ej: Diabetes, asma..." className={inputCls} />
+        <label className={labelCls}>Condición especial <span className="text-gray-400 font-normal">(salud, movilidad...)</span></label>
+        <input
+          value={form.condicion_especial}
+          onChange={e => set('condicion_especial', e.target.value)}
+          placeholder="Ej: Diabetes, asma, discapacidad motriz..."
+          className={inputCls}
+        />
       </div>
       <div>
         <label className={labelCls}>Teléfono</label>
-        <input value={form.telefono} onChange={e => set('telefono', e.target.value)} placeholder="04XX-XXXXXXX" className={inputCls} />
+        <input
+          value={form.telefono}
+          onChange={e => set('telefono', e.target.value)}
+          placeholder="04XX-XXXXXXX"
+          className={inputCls}
+        />
       </div>
-    </div>
+    </>
   )
 }
 
-// ── Subcomponente: edición de persona existente ───────────────────────────────
 function PersonaEditor({
-  persona: initial,
+  persona,
   onSaved,
   onCancel,
+  onEliminar,
 }: {
   persona: any
   onSaved: (updated: any) => void
   onCancel: () => void
+  onEliminar: () => void
 }) {
-  const [form, setForm] = useState({
-    nombre:             initial.nombre ?? '',
-    apellido:           initial.apellido ?? '',
-    cedula:             initial.cedula ?? '',
-    edad_aprox:         initial.edad_aprox?.toString() ?? '',
-    sexo:               initial.sexo ?? '',
-    rol_familia:        initial.rol_familia ?? '',
-    condicion_especial: initial.condicion_especial ?? '',
-    telefono:           initial.telefono ?? '',
-  })
+  const [form, setForm] = useState<PersonaFormState>(personaToForm(persona))
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(persona.foto_signed_url ?? null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  function set(field: string, val: string) {
+  function set(field: keyof PersonaFormState, val: string) {
     setForm(prev => ({ ...prev, [field]: val }))
+  }
+
+  function seleccionarFoto(file: File | null) {
+    setFotoFile(file)
+    if (fotoPreview && fotoPreview !== persona.foto_signed_url) URL.revokeObjectURL(fotoPreview)
+    setFotoPreview(file ? URL.createObjectURL(file) : (persona.foto_signed_url ?? null))
   }
 
   async function save() {
@@ -136,15 +271,43 @@ function PersonaEditor({
       return
     }
     setSaving(true); setError('')
-    const res = await fetch(`/api/personas/${initial.id}`, {
+
+    let foto_url = persona.foto_url
+    if (fotoFile) {
+      const path = await subirFoto(fotoFile)
+      if (path) foto_url = path
+    }
+
+    const body: Record<string, unknown> = {
+      nombre:             form.nombre.trim(),
+      apellido:           form.apellido.trim(),
+      cedula:             form.cedula || null,
+      fecha_nacimiento:   form.fecha_nacimiento || null,
+      sexo:               form.sexo || null,
+      rol_familia:        form.rol_familia || null,
+      condicion_especial: form.condicion_especial || null,
+      telefono:           form.telefono || null,
+    }
+
+    if (form.edad_unidad === 'meses') {
+      body.edad_meses = form.edad_aprox ? parseInt(form.edad_aprox) : null
+      body.edad_aprox = null
+    } else {
+      body.edad_aprox = form.edad_aprox ? parseInt(form.edad_aprox) : null
+      body.edad_meses = null
+    }
+
+    if (foto_url !== persona.foto_url) body.foto_url = foto_url
+
+    const res = await fetch(`/api/personas/${persona.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, edad_aprox: form.edad_aprox || null }),
+      body: JSON.stringify(body),
     })
     setSaving(false)
     if (res.ok) {
       const updated = await res.json()
-      onSaved(updated)
+      onSaved({ ...updated, foto_signed_url: fotoPreview })
     } else {
       const data = await res.json().catch(() => ({}))
       setError(data.error ?? 'No se pudo guardar.')
@@ -152,28 +315,46 @@ function PersonaEditor({
   }
 
   return (
-    <>
-      <PersonaFields form={form} set={set} />
-      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
-      <div className="flex gap-2 pt-3">
+    <div className="mt-3 border-t border-gray-100 pt-3 space-y-3">
+      <FotoInput preview={fotoPreview} onSelect={seleccionarFoto} />
+      <CamposPersona form={form} set={set} />
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex items-center gap-2 pt-1">
         <button
           type="button"
           onClick={save}
           disabled={saving}
-          className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition"
+          className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition btn-press"
         >
-          <Save className="w-3.5 h-3.5" />
-          {saving ? 'Guardando...' : 'Guardar cambios'}
+          <Check className="w-3.5 h-3.5" />
+          {saving ? 'Guardando...' : 'Guardar integrante'}
         </button>
-        <button type="button" onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5"
+        >
           Cancelar
         </button>
+        <button
+          type="button"
+          onClick={onEliminar}
+          className="ml-auto flex items-center gap-1 text-xs text-red-400 hover:text-red-600 transition"
+        >
+          <Trash2 className="w-3.5 h-3.5" /> Eliminar
+        </button>
       </div>
-    </>
+    </div>
   )
 }
 
-// ── Subcomponente: formulario para agregar integrante nuevo ───────────────────
+// ── AgregarPersonaForm ────────────────────────────────────────────────────────
+
+const EMPTY_FORM: PersonaFormState = {
+  nombre: '', apellido: '', cedula: '', edad_aprox: '', edad_unidad: 'anios',
+  fecha_nacimiento: '', sexo: '', rol_familia: '', condicion_especial: '', telefono: '',
+}
+
 function AgregarPersonaForm({
   casoId,
   onAdded,
@@ -183,12 +364,20 @@ function AgregarPersonaForm({
   onAdded: (nueva: any) => void
   onCancel: () => void
 }) {
-  const [form, setForm] = useState({ ...EMPTY_PERSONA_FORM })
+  const [form, setForm] = useState<PersonaFormState>({ ...EMPTY_FORM })
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  function set(field: string, val: string) {
+  function set(field: keyof PersonaFormState, val: string) {
     setForm(prev => ({ ...prev, [field]: val }))
+  }
+
+  function seleccionarFoto(file: File | null) {
+    setFotoFile(file)
+    if (fotoPreview) URL.revokeObjectURL(fotoPreview)
+    setFotoPreview(file ? URL.createObjectURL(file) : null)
   }
 
   async function save() {
@@ -197,15 +386,37 @@ function AgregarPersonaForm({
       return
     }
     setSaving(true); setError('')
+
+    let foto_url: string | undefined
+    if (fotoFile) foto_url = await subirFoto(fotoFile)
+
+    const body: Record<string, unknown> = {
+      nombre:             form.nombre.trim(),
+      apellido:           form.apellido.trim(),
+      cedula:             form.cedula || undefined,
+      fecha_nacimiento:   form.fecha_nacimiento || undefined,
+      sexo:               form.sexo || undefined,
+      rol_familia:        form.rol_familia || undefined,
+      condicion_especial: form.condicion_especial || undefined,
+      telefono:           form.telefono || undefined,
+      foto_url,
+    }
+
+    if (form.edad_unidad === 'meses') {
+      body.edad_meses = form.edad_aprox ? parseInt(form.edad_aprox) : undefined
+    } else {
+      body.edad_aprox = form.edad_aprox ? parseInt(form.edad_aprox) : undefined
+    }
+
     const res = await fetch(`/api/casos/${casoId}/personas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, edad_aprox: form.edad_aprox || null }),
+      body: JSON.stringify(body),
     })
     setSaving(false)
     if (res.ok) {
       const nueva = await res.json()
-      onAdded(nueva)
+      onAdded({ ...nueva, foto_signed_url: fotoPreview })
     } else {
       const data = await res.json().catch(() => ({}))
       setError(data.error ?? 'No se pudo agregar el integrante.')
@@ -213,21 +424,26 @@ function AgregarPersonaForm({
   }
 
   return (
-    <div className="border-2 border-dashed border-cyan-200 rounded-lg p-4 bg-cyan-50/30">
-      <p className="text-xs font-semibold text-cyan-700 mb-1">Nuevo integrante</p>
-      <PersonaFields form={form} set={set} />
-      {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
-      <div className="flex gap-2 pt-3">
+    <div className="border-2 border-dashed border-cyan-200 rounded-xl p-4 bg-cyan-50/30 space-y-3">
+      <p className="text-xs font-semibold text-cyan-700">Nuevo integrante</p>
+      <FotoInput preview={fotoPreview} onSelect={seleccionarFoto} />
+      <CamposPersona form={form} set={set} />
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex gap-2 pt-1">
         <button
           type="button"
           onClick={save}
           disabled={saving}
-          className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition"
+          className="flex items-center gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50 transition btn-press"
         >
           <UserPlus className="w-3.5 h-3.5" />
           {saving ? 'Agregando...' : 'Agregar integrante'}
         </button>
-        <button type="button" onClick={onCancel} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-1.5">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1.5"
+        >
           Cancelar
         </button>
       </div>
@@ -235,55 +451,126 @@ function AgregarPersonaForm({
   )
 }
 
-// ── Componente principal ──────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
+
 export default function EditarCasoForm({
   caso,
   personas: initialPersonas,
   necesidades,
+  esAdmin = false,
 }: {
   caso: any
   personas: any[]
   necesidades: any[]
+  esAdmin?: boolean
 }) {
   const router = useRouter()
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
+  const { toasts, showToast } = useToast()
+  const [paso, setPaso] = useState(1)
+  const [sectoresCoro, setSectoresCoro] = useState<string[]>([])
+  const [necesidadesLocales, setNecesidadesLocales] = useState<any[]>(necesidades)
+  const [eliminandoNecId, setEliminandoNecId] = useState<string | null>(null)
+  const [expandidaNecId, setExpandidaNecId] = useState<string | null>(null)
+  const [itemAddTxt, setItemAddTxt] = useState('')
+  const [itemAddPersonaId, setItemAddPersonaId] = useState('')
+  const [guardandoItem, setGuardandoItem] = useState(false)
+  const [editandoItemId, setEditandoItemId] = useState<string | null>(null)
+  const [itemEditTxt, setItemEditTxt] = useState('')
+  const [itemEditPersonaId, setItemEditPersonaId] = useState('')
+  const [eliminandoItemId, setEliminandoItemId] = useState<string | null>(null)
+
+  const [datosCaso, setDatosCaso] = useState({
+    nombre_caso:      caso.nombre_caso ?? '',
+    estado:           caso.estado ?? 'activo',
+    tipo:             caso.tipo ?? 'individual',
+    ciudad_origen:    caso.ciudad_origen ?? '',
+    estado_origen:    caso.estado_origen ?? '',
+    zona_afectada:    caso.zona_afectada ?? '',
+    tipo_alojamiento: caso.tipo_alojamiento ?? '',
+    sector_coro:      caso.sector_coro ?? '',
+    direccion_actual: caso.direccion_actual ?? '',
+  })
+
   const [personas, setPersonas] = useState<any[]>(initialPersonas)
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [agregando, setAgregando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<string | null>(null)
-  const [necAbierta, setNecAbierta] = useState(false)
+  const [savingCaso, setSavingCaso] = useState(false)
+  const [error, setError] = useState('')
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSaving(true); setError('')
-    const fd = new FormData(e.currentTarget)
-    const body: Record<string, string> = {}
-    fd.forEach((val, key) => { body[key] = val.toString().trim() })
+  useEffect(() => {
+    fetch('/api/sectores-coro').then(r => r.json()).then(setSectoresCoro).catch(() => {})
+  }, [])
 
+  function setCaso(field: string, val: string) {
+    setDatosCaso(prev => ({ ...prev, [field]: val }))
+  }
+
+  async function guardarCaso(): Promise<boolean> {
+    setSavingCaso(true); setError('')
+    const body: Record<string, unknown> = {}
+    if (paso === 1) {
+      body.nombre_caso   = datosCaso.nombre_caso
+      body.estado        = datosCaso.estado
+      body.tipo          = datosCaso.tipo
+      body.ciudad_origen = datosCaso.ciudad_origen || null
+      body.estado_origen = datosCaso.estado_origen || null
+      body.zona_afectada = datosCaso.zona_afectada || null
+    } else if (paso === 2) {
+      body.tipo_alojamiento = datosCaso.tipo_alojamiento || null
+      body.sector_coro      = datosCaso.sector_coro || null
+      body.direccion_actual  = datosCaso.direccion_actual || null
+    }
     const res = await fetch(`/api/casos/${caso.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-    setSaving(false)
-    if (res.ok) {
-      router.push(`/casos/${caso.id}`)
-      router.refresh()
-    } else {
+    setSavingCaso(false)
+    if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       setError(data.error ?? 'No se pudo guardar. Intenta de nuevo.')
+      return false
     }
+    return true
+  }
+
+  async function avanzar() {
+    if (paso <= 2) {
+      const ok = await guardarCaso()
+      if (!ok) return
+      showToast('Cambios guardados')
+    }
+    setError('')
+    setPaso(p => Math.min(4, p + 1))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function retroceder() {
+    setError('')
+    setPaso(p => Math.max(1, p - 1))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  async function guardarYVolver() {
+    if (paso <= 2) {
+      const ok = await guardarCaso()
+      if (!ok) return
+    }
+    router.push(`/casos/${caso.id}`)
+    router.refresh()
   }
 
   function onPersonaSaved(updated: any) {
     setPersonas(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
     setEditandoId(null)
+    showToast(`${updated.nombre} actualizado`)
   }
 
   function onPersonaAdded(nueva: any) {
     setPersonas(prev => [...prev, nueva])
     setAgregando(false)
+    showToast(`${nueva.nombre} agregado`)
   }
 
   async function eliminarPersona(id: string) {
@@ -291,231 +578,626 @@ export default function EditarCasoForm({
     const res = await fetch(`/api/personas/${id}`, { method: 'DELETE' })
     setEliminandoId(null)
     if (res.ok) {
+      const eliminado = personas.find(p => p.id === id)
       setPersonas(prev => prev.filter(p => p.id !== id))
       if (editandoId === id) setEditandoId(null)
+      showToast(`${eliminado?.nombre ?? 'Integrante'} eliminado`)
     } else {
       const data = await res.json().catch(() => ({}))
       alert(data.error ?? 'No se pudo eliminar el integrante.')
     }
   }
 
-  return (
-    <div className="space-y-4">
+  // ── Item CRUD helpers ─────────────────────────────────────────────────────────
 
-      {/* ── Datos generales del caso ─────────────────────────────────────── */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-5">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Datos generales</p>
+  function actualizarNec(id: string, data: any) {
+    setNecesidadesLocales(prev => prev.map(n => n.id === id ? { ...n, ...data } : n))
+  }
 
-        <div>
-          <label className={labelCls}>Nombre del caso</label>
-          <input name="nombre_caso" defaultValue={caso.nombre_caso} required className={inputCls} />
-        </div>
+  async function agregarItemANec(necId: string) {
+    const t = itemAddTxt.trim()
+    if (!t) return
+    setGuardandoItem(true)
+    const res = await fetch('/api/necesidades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: necId,
+        accion: 'agregar_item',
+        items: [{ texto: t, persona_id: itemAddPersonaId || undefined }],
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      actualizarNec(necId, { items_entrega: data.items_entrega })
+      setItemAddTxt('')
+      setItemAddPersonaId('')
+      showToast('Artículo agregado')
+    }
+    setGuardandoItem(false)
+  }
 
-        <div>
-          <label className={labelCls}>Estado del caso</label>
-          <select name="estado" defaultValue={caso.estado} className={inputCls}>
-            {ESTADOS_CASO.map(e => (
-              <option key={e.value} value={e.value}>{e.label}</option>
-            ))}
-          </select>
-        </div>
+  async function eliminarItemDeNec(necId: string, itemId: string) {
+    setEliminandoItemId(itemId)
+    const res = await fetch('/api/necesidades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: necId, accion: 'eliminar_item', item_id: itemId }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      actualizarNec(necId, { items_entrega: data.items_entrega })
+      showToast('Artículo eliminado')
+    }
+    setEliminandoItemId(null)
+  }
 
-        <hr className="border-gray-100" />
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Origen</p>
+  async function guardarEdicionItem(necId: string) {
+    if (!editandoItemId || !itemEditTxt.trim()) return
+    setGuardandoItem(true)
+    const res = await fetch('/api/necesidades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: necId,
+        accion: 'editar_item',
+        item_id: editandoItemId,
+        nuevo_texto: itemEditTxt.trim(),
+        persona_id: itemEditPersonaId || null,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      actualizarNec(necId, { items_entrega: data.items_entrega })
+      setEditandoItemId(null)
+      showToast('Artículo actualizado')
+    }
+    setGuardandoItem(false)
+  }
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={labelCls}>Ciudad de origen</label>
-            <input name="ciudad_origen" defaultValue={caso.ciudad_origen ?? ''} placeholder="Ej: La Guaira" className={inputCls} />
+  function abrirExpandida(necId: string) {
+    setExpandidaNecId(prev => {
+      const abriendo = prev !== necId
+      if (abriendo) { setEditandoItemId(null); setItemAddTxt(''); setItemAddPersonaId('') }
+      return abriendo ? necId : null
+    })
+  }
+
+  // ── Progress bar ─────────────────────────────────────────────────────────────
+  const Progreso = (
+    <div className="flex items-center justify-between mb-6">
+      {PASOS.map((p, i) => {
+        const activo = p.numero === paso
+        const completado = p.numero < paso
+        return (
+          <div key={p.numero} className="flex items-center flex-1">
+            <div className="flex flex-col items-center">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition ${
+                completado
+                  ? 'bg-cyan-600 text-white'
+                  : activo
+                  ? 'bg-cyan-600 text-white ring-4 ring-cyan-100'
+                  : 'bg-gray-100 text-gray-400'
+              }`}>
+                {completado ? <Check className="w-3.5 h-3.5" /> : p.numero}
+              </div>
+              <span className={`mt-1 text-[10px] font-medium whitespace-nowrap ${
+                activo ? 'text-cyan-700' : completado ? 'text-cyan-500' : 'text-gray-400'
+              }`}>
+                {p.label}
+              </span>
+            </div>
+            {i < PASOS.length - 1 && (
+              <div className={`flex-1 h-0.5 mx-1 mb-4 transition ${completado ? 'bg-cyan-400' : 'bg-gray-100'}`} />
+            )}
           </div>
-          <div>
-            <label className={labelCls}>Estado (Venezuela)</label>
-            <input name="estado_origen" defaultValue={caso.estado_origen ?? ''} placeholder="Ej: Vargas" className={inputCls} />
-          </div>
-        </div>
+        )
+      })}
+    </div>
+  )
 
-        <div>
-          <label className={labelCls}>Zona afectada (barrio o sector de origen)</label>
-          <input name="zona_afectada" defaultValue={caso.zona_afectada ?? ''} placeholder="Ej: Barrio La Cruz" className={inputCls} />
-        </div>
-
-        <hr className="border-gray-100" />
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Ubicación actual en Coro</p>
-
-        <div>
-          <label className={labelCls}>Sector en Coro</label>
-          <input name="sector_coro" defaultValue={caso.sector_coro ?? ''} placeholder="Ej: Las Eugenias, Centro..." className={inputCls} />
-        </div>
-
-        <div>
-          <label className={labelCls}>Dirección actual</label>
-          <input name="direccion_actual" defaultValue={caso.direccion_actual ?? ''} placeholder="Calle, número de casa, referencia..." className={inputCls} />
-        </div>
-
-        <div>
-          <label className={labelCls}>Tipo de alojamiento</label>
-          <select name="tipo_alojamiento" defaultValue={caso.tipo_alojamiento ?? ''} className={inputCls}>
-            <option value="">Sin especificar</option>
-            {TIPOS_ALOJAMIENTO.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </div>
-
-        {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
-        )}
-
-        <div className="flex gap-3 pt-2">
+  // ── Bottom nav ────────────────────────────────────────────────────────────────
+  const NavButtons = (
+    <div className="flex items-center justify-between pt-5 mt-5 border-t border-gray-100">
+      <div className="flex items-center gap-3">
+        {paso > 1 ? (
+          <button
+            type="button"
+            onClick={retroceder}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-2 rounded-lg transition"
+          >
+            <ChevronLeft className="w-4 h-4" /> Atrás
+          </button>
+        ) : (
           <Link
             href={`/casos/${caso.id}`}
-            className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg transition"
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 px-3 py-2 rounded-lg transition"
           >
-            Cancelar
+            <ChevronLeft className="w-4 h-4" /> Cancelar
           </Link>
-          <button
-            type="submit"
-            disabled={saving}
-            className="flex items-center gap-2 bg-[#0891B2] hover:bg-[#0C4A6E] text-white px-5 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition btn-press"
-          >
-            <Save className="w-4 h-4" />
-            {saving ? 'Guardando...' : 'Guardar cambios'}
-          </button>
-        </div>
-      </form>
+        )}
+        <button
+          type="button"
+          onClick={guardarYVolver}
+          disabled={savingCaso}
+          className="text-sm text-gray-400 hover:text-cyan-600 transition"
+        >
+          Guardar y volver
+        </button>
+      </div>
 
-      {/* ── Integrantes ──────────────────────────────────────────────────── */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
-        <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
-            Integrantes · {personas.length}
-          </p>
-          {!agregando && (
-            <button
-              type="button"
-              onClick={() => { setAgregando(true); setEditandoId(null) }}
-              className="flex items-center gap-1.5 text-xs text-cyan-600 hover:text-cyan-800 font-medium border border-cyan-200 hover:border-cyan-400 px-2.5 py-1 rounded-lg transition"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              Agregar integrante
-            </button>
-          )}
-        </div>
+      {paso < 4 ? (
+        <button
+          type="button"
+          onClick={avanzar}
+          disabled={savingCaso}
+          className="flex items-center gap-1.5 bg-[#0891B2] hover:bg-[#0C4A6E] text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition btn-press"
+        >
+          {savingCaso ? 'Guardando...' : 'Continuar'}
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => { router.push(`/casos/${caso.id}`); router.refresh() }}
+          className="flex items-center gap-1.5 bg-[#0891B2] hover:bg-[#0C4A6E] text-white px-4 py-2 rounded-lg text-sm font-medium transition btn-press"
+        >
+          <CheckCircle2 className="w-4 h-4" /> Ver caso
+        </button>
+      )}
+    </div>
+  )
 
-        {personas.map(persona => (
-          <div key={persona.id} className="border border-gray-100 rounded-lg p-3">
-            {/* Cabecera de la persona */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 shrink-0 rounded-full bg-cyan-50 border border-cyan-100 flex items-center justify-center">
-                  <User className="w-4 h-4 text-cyan-400" />
-                </div>
-                <div className="min-w-0">
+  function handleWizardKey(e: React.KeyboardEvent) {
+    if (e.key !== 'Enter') return
+    const tag = (e.target as HTMLElement).tagName
+    if (tag === 'TEXTAREA' || tag === 'BUTTON' || tag === 'SELECT') return
+    if ((e.target as HTMLElement).closest('[data-items-input]')) return
+    if (paso < 4) { e.preventDefault(); avanzar() }
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6" onKeyDown={handleWizardKey}>
+      {Progreso}
+
+      {error && (
+        <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+      )}
+
+      {/* ── Paso 1: General ──────────────────────────────────────────────── */}
+      {paso === 1 && (
+        <div className="space-y-4">
+          <div>
+            <label className={labelCls}>Tipo de caso</label>
+            <div className="flex gap-2">
+              {(['individual', 'familiar'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setCaso('tipo', t)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-medium transition btn-press ${
+                    datosCaso.tipo === t
+                      ? 'bg-cyan-600 text-white border-cyan-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-cyan-300'
+                  }`}
+                >
+                  {t === 'individual' ? <User className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                  {t === 'individual' ? 'Persona individual' : 'Grupo familiar'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Nombre del caso <span className="text-red-500">*</span></label>
+            <input
+              value={datosCaso.nombre_caso}
+              onChange={e => setCaso('nombre_caso', e.target.value)}
+              required
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className={labelCls}>Estado del caso</label>
+            <select value={datosCaso.estado} onChange={e => setCaso('estado', e.target.value)} className={inputCls}>
+              {ESTADOS_CASO.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+            </select>
+          </div>
+
+          <hr className="border-gray-100" />
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Lugar de origen</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Ciudad</label>
+              <input
+                value={datosCaso.ciudad_origen}
+                onChange={e => setCaso('ciudad_origen', e.target.value)}
+                placeholder="Ej: La Guaira"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Estado (Venezuela)</label>
+              <input
+                list="estados-vzla"
+                value={datosCaso.estado_origen}
+                onChange={e => setCaso('estado_origen', e.target.value)}
+                placeholder="Ej: Vargas"
+                className={inputCls}
+              />
+              <datalist id="estados-vzla">
+                {ESTADOS_VENEZUELA.map(e => <option key={e} value={e} />)}
+              </datalist>
+            </div>
+          </div>
+
+          <div>
+            <label className={labelCls}>Zona afectada <span className="text-gray-400 font-normal">(barrio o sector de origen)</span></label>
+            <input
+              value={datosCaso.zona_afectada}
+              onChange={e => setCaso('zona_afectada', e.target.value)}
+              placeholder="Ej: Barrio La Cruz"
+              className={inputCls}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Paso 2: Ubicación ────────────────────────────────────────────── */}
+      {paso === 2 && (
+        <div className="space-y-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Ubicación actual en Coro</p>
+
+          <div>
+            <label className={labelCls}>Tipo de alojamiento</label>
+            <select value={datosCaso.tipo_alojamiento} onChange={e => setCaso('tipo_alojamiento', e.target.value)} className={inputCls}>
+              <option value="">Sin especificar</option>
+              {TIPOS_ALOJAMIENTO.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className={labelCls}>Sector en Coro</label>
+            <input
+              list="sectores-coro-list"
+              value={datosCaso.sector_coro}
+              onChange={e => setCaso('sector_coro', e.target.value)}
+              placeholder="Ej: Las Eugenias, Centro..."
+              className={inputCls}
+            />
+            <datalist id="sectores-coro-list">
+              {sectoresCoro.map(s => <option key={s} value={s} />)}
+            </datalist>
+          </div>
+
+          <div>
+            <label className={labelCls}>Dirección actual</label>
+            <input
+              value={datosCaso.direccion_actual}
+              onChange={e => setCaso('direccion_actual', e.target.value)}
+              placeholder="Calle, número de casa, referencia..."
+              className={inputCls}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Paso 3: Personas ────────────────────────────────────────────── */}
+      {paso === 3 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              Integrantes · {personas.length}
+            </p>
+            {!agregando && (
+              <button
+                type="button"
+                onClick={() => { setAgregando(true); setEditandoId(null) }}
+                className="flex items-center gap-1.5 text-xs text-cyan-600 hover:text-cyan-800 font-medium border border-cyan-200 hover:border-cyan-400 px-2.5 py-1 rounded-lg transition"
+              >
+                <UserPlus className="w-3.5 h-3.5" /> Agregar integrante
+              </button>
+            )}
+          </div>
+
+          {personas.map(persona => (
+            <div key={persona.id} className="border border-gray-100 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                {persona.foto_signed_url ? (
+                  <img
+                    src={persona.foto_signed_url}
+                    alt={persona.nombre}
+                    className="w-10 h-10 shrink-0 rounded-lg object-cover border border-gray-200"
+                  />
+                ) : (
+                  <div className="w-10 h-10 shrink-0 rounded-full bg-cyan-50 border border-cyan-100 flex items-center justify-center">
+                    <User className="w-5 h-5 text-cyan-400" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 truncate">
                     {persona.nombre} {persona.apellido}
                   </p>
                   <p className="text-xs text-gray-400">
                     {[
-                      persona.edad_aprox ? `${persona.edad_aprox} años` : null,
-                      persona.rol_familia ? ROLES_FAMILIA.find(r => r.value === persona.rol_familia)?.label ?? persona.rol_familia : null,
-                      persona.cedula ? `CI: ${persona.cedula}` : null,
+                      persona.edad_meses
+                        ? `${persona.edad_meses} ${persona.edad_meses === 1 ? 'mes' : 'meses'}`
+                        : persona.edad_aprox
+                        ? `${persona.edad_aprox} años`
+                        : null,
+                      ROLES_FAMILIA.find(r => r.value === persona.rol_familia)?.label ?? persona.rol_familia,
                     ].filter(Boolean).join(' · ')}
                   </p>
                 </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setEditandoId(editandoId === persona.id ? null : persona.id); setAgregando(false) }}
+                    className="text-xs text-cyan-600 hover:text-cyan-800 font-medium border border-cyan-200 hover:border-cyan-400 px-2.5 py-1 rounded-lg transition"
+                  >
+                    {editandoId === persona.id ? 'Cerrar' : 'Editar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { if (confirm(`¿Eliminar a ${persona.nombre} ${persona.apellido}? Esta acción no se puede deshacer.`)) eliminarPersona(persona.id) }}
+                    disabled={eliminandoId === persona.id}
+                    className="text-xs text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 px-2 py-1 rounded-lg transition disabled:opacity-40"
+                    title="Eliminar integrante"
+                  >
+                    {eliminandoId === persona.id ? <span className="text-[10px]">...</span> : <Trash2 className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditandoId(editandoId === persona.id ? null : persona.id)
-                    setAgregando(false)
-                  }}
-                  className="text-xs text-cyan-600 hover:text-cyan-800 font-medium border border-cyan-200 hover:border-cyan-400 px-2.5 py-1 rounded-lg transition"
-                >
-                  {editandoId === persona.id ? 'Cerrar' : 'Editar'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm(`¿Eliminar a ${persona.nombre} ${persona.apellido} del caso? Esta acción no se puede deshacer.`)) {
+
+              {editandoId === persona.id && (
+                <PersonaEditor
+                  persona={persona}
+                  onSaved={onPersonaSaved}
+                  onCancel={() => setEditandoId(null)}
+                  onEliminar={() => {
+                    if (confirm(`¿Eliminar a ${persona.nombre} ${persona.apellido}? Esta acción no se puede deshacer.`)) {
                       eliminarPersona(persona.id)
                     }
                   }}
-                  disabled={eliminandoId === persona.id}
-                  className="text-xs text-red-400 hover:text-red-600 border border-red-100 hover:border-red-300 px-2 py-1 rounded-lg transition disabled:opacity-40"
-                  title="Eliminar integrante"
-                >
-                  {eliminandoId === persona.id
-                    ? <span className="text-xs">...</span>
-                    : <Trash2 className="w-3.5 h-3.5" />
-                  }
-                </button>
-              </div>
+                />
+              )}
             </div>
+          ))}
 
-            {/* Editor expandible */}
-            {editandoId === persona.id && (
-              <PersonaEditor
-                persona={persona}
-                onSaved={onPersonaSaved}
-                onCancel={() => setEditandoId(null)}
-              />
-            )}
-          </div>
-        ))}
+          {agregando && (
+            <AgregarPersonaForm
+              casoId={caso.id}
+              onAdded={onPersonaAdded}
+              onCancel={() => setAgregando(false)}
+            />
+          )}
 
-        {/* Formulario para agregar nuevo integrante */}
-        {agregando && (
-          <AgregarPersonaForm
-            casoId={caso.id}
-            onAdded={onPersonaAdded}
-            onCancel={() => setAgregando(false)}
-          />
-        )}
-
-        {personas.length === 0 && !agregando && (
-          <p className="text-sm text-gray-400 text-center py-4">
-            No hay integrantes registrados en este caso.
-          </p>
-        )}
-      </div>
-
-      {/* ── Necesidades ──────────────────────────────────────────────────── */}
-      {necesidades.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 space-y-3">
-          <button
-            type="button"
-            onClick={() => setNecAbierta(a => !a)}
-            className="w-full flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wide hover:text-gray-600 transition"
-          >
-            <span>Necesidades registradas · {necesidades.length}</span>
-            {necAbierta ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          </button>
-
-          {necAbierta && (
-            <div className="space-y-2">
-              {necesidades.map((nec: any) => {
-                const cfg = ESTADO_NEC_CONFIG[nec.estado] ?? ESTADO_NEC_CONFIG.pendiente
-                const { Icon } = cfg
-                return (
-                  <div key={nec.id} className="flex items-center justify-between gap-2 text-sm border border-gray-50 rounded-lg px-3 py-2 bg-gray-50">
-                    <span className="text-gray-700">{CATEGORIA_LABELS[nec.categoria] ?? nec.categoria}</span>
-                    <span className={`flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${cfg.cls}`}>
-                      <Icon className="w-3 h-3" />
-                      {cfg.label}
-                    </span>
-                  </div>
-                )
-              })}
-              <p className="text-xs text-gray-400 pt-1">
-                Las entregas y detalles de cada necesidad se gestionan desde{' '}
-                <Link href={`/casos/${caso.id}`} className="text-cyan-600 hover:underline">la ficha del caso</Link>.
-              </p>
-            </div>
+          {personas.length === 0 && !agregando && (
+            <p className="text-sm text-gray-400 text-center py-6">
+              No hay integrantes registrados en este caso.
+            </p>
           )}
         </div>
       )}
 
+      {/* ── Paso 4: Necesidades ──────────────────────────────────────────── */}
+      {paso === 4 && (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+            Necesidades · {necesidadesLocales.length}
+          </p>
+
+          {necesidadesLocales.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-4">
+              No hay necesidades registradas aún.
+            </p>
+          )}
+
+          {necesidadesLocales.map((nec: any) => {
+            const catLabel = CATEGORIA_LABELS[nec.categoria as keyof typeof CATEGORIA_LABELS] ?? nec.categoria
+            const items: any[] = nec.items_entrega?.items ?? []
+            const expandida = expandidaNecId === nec.id
+            const casoTs = caso.created_at ? new Date(caso.created_at).getTime() : null
+            const necTs  = nec.created_at  ? new Date(nec.created_at).getTime()  : null
+            const esInicial = casoTs && necTs ? (necTs - casoTs) < 10 * 60 * 1000 : true
+            const fechaCorta = nec.created_at
+              ? new Date(nec.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })
+              : null
+            return (
+              <div key={nec.id} className={`border rounded-xl bg-white overflow-hidden transition ${expandida ? 'border-cyan-300' : 'border-gray-200'}`}>
+                {/* Cabecera */}
+                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-gray-800">{catLabel}</p>
+                      <span className="text-xs text-gray-400">{items.length} artículo{items.length !== 1 ? 's' : ''}</span>
+                      {esInicial ? (
+                        <span className="text-[10px] font-medium bg-gray-100 text-gray-400 rounded-full px-2 py-0.5">Inicial</span>
+                      ) : fechaCorta ? (
+                        <span className="text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">
+                          Agregada el {fechaCorta}
+                        </span>
+                      ) : null}
+                    </div>
+                    {nec.descripcion && !expandida && (
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{nec.descripcion}</p>
+                    )}
+                    {!expandida && items.length > 0 && (
+                      <ul className="mt-1.5 flex flex-wrap gap-1">
+                        {items.map((it: any, i: number) => (
+                          <li key={it.id ?? i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{it.texto}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => abrirExpandida(nec.id)}
+                      className={`text-xs font-medium border px-2.5 py-1 rounded-lg transition ${
+                        expandida
+                          ? 'text-cyan-700 border-cyan-300 bg-cyan-50'
+                          : 'text-cyan-600 border-cyan-200 hover:border-cyan-400 hover:text-cyan-800'
+                      }`}
+                    >
+                      {expandida ? 'Listo' : '+ Agregar más'}
+                    </button>
+                    {esAdmin && (
+                      <button
+                        type="button"
+                        disabled={eliminandoNecId === nec.id}
+                        onClick={async () => {
+                          if (!confirm(`¿Eliminar la necesidad "${catLabel}"?`)) return
+                          setEliminandoNecId(nec.id)
+                          await fetch(`/api/necesidades?id=${nec.id}`, { method: 'DELETE' })
+                          setNecesidadesLocales(prev => prev.filter(n => n.id !== nec.id))
+                          setEliminandoNecId(null)
+                          showToast(`Necesidad de ${catLabel} eliminada`)
+                        }}
+                        className="shrink-0 text-gray-300 hover:text-red-500 disabled:opacity-40 transition"
+                        aria-label="Eliminar necesidad"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Panel expandido */}
+                {expandida && (
+                  <div className="border-t border-cyan-100 bg-cyan-50/30 px-4 pb-4 pt-3 space-y-3" data-items-input>
+                    {/* Lista de artículos con editar/eliminar */}
+                    {items.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {items.map((it: any) => (
+                          <li key={it.id}>
+                            {editandoItemId === it.id ? (
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  value={itemEditTxt}
+                                  onChange={e => setItemEditTxt(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); guardarEdicionItem(nec.id) } }}
+                                  onFocus={e => e.target.select()}
+                                  className={`${inputCls} flex-1 text-xs py-1.5`}
+                                  autoFocus
+                                  maxLength={200}
+                                />
+                                {personas.length > 0 && (
+                                  <select
+                                    value={itemEditPersonaId}
+                                    onChange={e => setItemEditPersonaId(e.target.value)}
+                                    className={`${inputCls} text-xs py-1.5 w-auto`}
+                                  >
+                                    <option value="">Toda la familia</option>
+                                    {personas.map(p => (
+                                      <option key={p.id} value={p.id}>{p.nombre} {p.apellido ?? ''}</option>
+                                    ))}
+                                  </select>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => guardarEdicionItem(nec.id)}
+                                  disabled={guardandoItem}
+                                  className="flex items-center gap-1 text-xs bg-cyan-600 hover:bg-cyan-700 text-white px-2.5 py-1.5 rounded-lg disabled:opacity-50 transition"
+                                >
+                                  <Check className="w-3 h-3" /> OK
+                                </button>
+                                <button type="button" onClick={() => setEditandoItemId(null)} className="text-gray-400 hover:text-gray-600 transition">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 group">
+                                <span className={`flex-1 text-xs px-2.5 py-1.5 rounded-lg ${it.entregado ? 'line-through text-gray-400 bg-gray-50' : 'bg-white text-gray-700 border border-gray-100'}`}>
+                                  {it.texto}
+                                  {it.persona_nombre && (
+                                    <span className="text-cyan-600 ml-1">· {it.persona_nombre}</span>
+                                  )}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditandoItemId(it.id); setItemEditTxt(it.texto); setItemEditPersonaId(it.persona_id ?? '') }}
+                                  className="shrink-0 p-1 text-gray-300 hover:text-cyan-500 transition"
+                                  title="Editar artículo"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => eliminarItemDeNec(nec.id, it.id)}
+                                  disabled={eliminandoItemId === it.id}
+                                  className="shrink-0 p-1 text-gray-300 hover:text-red-500 disabled:opacity-40 transition"
+                                  title="Eliminar artículo"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Formulario agregar artículo */}
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-xs font-medium text-gray-500">Agregar artículo a {catLabel}:</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <input
+                          value={itemAddTxt}
+                          onChange={e => setItemAddTxt(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarItemANec(nec.id) } }}
+                          placeholder="Ej: Arroz, pasta, aceite..."
+                          maxLength={200}
+                          className={`${inputCls} flex-1 min-w-[160px] text-sm`}
+                        />
+                        {personas.length > 0 && (
+                          <select
+                            value={itemAddPersonaId}
+                            onChange={e => setItemAddPersonaId(e.target.value)}
+                            className={`${inputCls} w-auto text-sm`}
+                          >
+                            <option value="">Toda la familia</option>
+                            {personas.map(p => (
+                              <option key={p.id} value={p.id}>{p.nombre} {p.apellido ?? ''}</option>
+                            ))}
+                          </select>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => agregarItemANec(nec.id)}
+                          disabled={guardandoItem || !itemAddTxt.trim()}
+                          className="flex items-center gap-1.5 text-sm bg-gray-900 hover:bg-gray-700 text-white px-3 py-2 rounded-lg disabled:opacity-40 transition whitespace-nowrap btn-press"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          {guardandoItem ? 'Guardando...' : 'Agregar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          <div className="pt-1">
+            <AgregarNecesidad
+              casoId={caso.id}
+              personas={personas.map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido }))}
+              necesidadesExistentes={necesidadesLocales.map(n => ({ id: n.id, categoria: n.categoria }))}
+              onGuardada={label => {
+                showToast(`Necesidad de ${label} guardada`)
+                // Recargar necesidades desde el servidor para reflejar la nueva
+                fetch(`/api/casos/${caso.id}`).then(() => {}).catch(() => {})
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {NavButtons}
+      <ToastContainer toasts={toasts} />
     </div>
   )
 }
