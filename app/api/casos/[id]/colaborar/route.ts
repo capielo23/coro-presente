@@ -46,7 +46,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (error && error.code === '23505') {
     return NextResponse.json({ error: 'Ya eres colaborador de este caso' }, { status: 409 })
   }
-  if (error) return NextResponse.json({ error: 'Error al unirse' }, { status: 500 })
+  if (error) {
+    console.error('[colaborar POST] Supabase error:', error.code, error.message)
+    return NextResponse.json({ error: error.message ?? 'Error al unirse' }, { status: 500 })
+  }
 
   await admin.from('historial_caso').insert({
     caso_id: params.id, voluntario_id: user.id,
@@ -84,7 +87,10 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     .eq('caso_id', params.id)
     .eq('voluntario_id', targetVoluntarioId)
 
-  if (error) return NextResponse.json({ error: 'Error al salir' }, { status: 500 })
+  if (error) {
+    console.error('[colaborar DELETE] Supabase error:', error.code, error.message)
+    return NextResponse.json({ error: error.message ?? 'Error al quitar colaborador' }, { status: 500 })
+  }
 
   await admin.from('historial_caso').insert({
     caso_id: params.id, voluntario_id: user.id,
