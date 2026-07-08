@@ -85,6 +85,13 @@ html {
 .btn-press { transition: transform 0.1s ease, filter 0.12s ease; }
 .btn-press:active { transform: scale(0.97); filter: brightness(0.95); }
 
+/* Panel lateral — slide desde la derecha */
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+.animate-slide-in-right { animation: slideInRight 0.22s ease-out; }
+
 /* Reduced motion — apaga todo */
 @media (prefers-reduced-motion: reduce) {
   .badge-pulse, .card-hover, .btn-press {
