@@ -47,7 +47,7 @@ export default async function FichaCasoPage({ params }: { params: { id: string }
       .order('nombre_completo'),
     // Equipo: colaboradores del caso (con nombre)
     admin.from('caso_colaboradores')
-      .select('voluntario:voluntarios(id, nombre_completo)')
+      .select('voluntario:voluntario_id(id, nombre_completo)')
       .eq('caso_id', params.id),
     // Ledger de entregas del caso (con nombre de quien registró)
     admin.from('entregas')
