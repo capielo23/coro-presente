@@ -23,12 +23,28 @@ export default function IntegranteCard({
   const [entries, setEntries] = useState<Entry[]>(itemsPersona)
 
   // Sincronizar con datos frescos del servidor tras router.refresh()
-  // La "llave" cambia solo cuando varía el conteo o el estado de entrega real
   const serverKey = `${itemsPersona.length}:${itemsPersona.filter(e => e.item.entregado).length}`
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { setEntries(itemsPersona) }, [serverKey])
 
-  const [abierto, setAbierto] = useState(false)
+  // Actualización en tiempo real cuando NecesidadGestion marca/desmarca un ítem
+  useEffect(() => {
+    function handler(e: Event) {
+      const { necesidadId, itemId, itemTexto, entregado } = (e as CustomEvent).detail
+      setEntries(prev => prev.map(entry => {
+        if (entry.necesidadId !== necesidadId) return entry
+        if (entry.item.id === itemId || entry.item.texto === itemTexto) {
+          return { ...entry, item: { ...entry.item, entregado } }
+        }
+        return entry
+      }))
+    }
+    window.addEventListener('necesidad-item-change', handler)
+    return () => window.removeEventListener('necesidad-item-change', handler)
+  }, [])
+
+  const [abierto, setAbierto] = useState(itemsPersona.length > 0)
+  const [verEntregados, setVerEntregados] = useState(false)
   const [entregandoKey, setEntregandoKey] = useState<string | null>(null)
   const [deliverer, setDeliverer] = useState('')
   const [notaItem, setNotaItem] = useState('')
@@ -144,69 +160,93 @@ export default function IntegranteCard({
             </span>
           </button>
 
-          {abierto && (
-            <div className="mt-2 space-y-1.5">
-              {entries.map(entry => {
-                const k = keyOf(entry)
-                const it = entry.item
-                const enProceso = entregandoKey === k
-                return (
-                  <div key={k}>
-                    <div className="flex items-start gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { if (!puedeMarcarEntregas || loading) return; if (it.entregado) { marcar(entry, false) } else { setEntregandoKey(enProceso ? null : k) } }}
-                        disabled={!puedeMarcarEntregas || loading}
-                        className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition ${it.entregado ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'} ${puedeMarcarEntregas ? 'cursor-pointer hover:border-green-500' : 'cursor-default'} disabled:opacity-60`}
-                        aria-label={it.entregado ? `Desmarcar ${it.texto}` : `Marcar ${it.texto} como entregado`}
-                      >
-                        {it.entregado && <Check className="w-3 h-3 text-white" />}
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-xs ${it.entregado ? 'text-gray-800' : 'text-gray-600'}`}>
-                          {it.texto}
-                          <span className="text-gray-400"> · {CATEGORIA_LABELS[entry.categoria] || entry.categoria}</span>
+          {abierto && (() => {
+            const pendientes = entries.filter(e => !e.item.entregado)
+            const entregadosList = entries.filter(e => e.item.entregado)
+
+            function renderEntry(entry: Entry) {
+              const k = keyOf(entry)
+              const it = entry.item
+              const enProceso = entregandoKey === k
+              return (
+                <div key={k}>
+                  <div className="flex items-start gap-2">
+                    <button
+                      type="button"
+                      onClick={() => { if (!puedeMarcarEntregas || loading) return; if (it.entregado) { marcar(entry, false) } else { setEntregandoKey(enProceso ? null : k) } }}
+                      disabled={!puedeMarcarEntregas || loading}
+                      className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition ${it.entregado ? 'bg-green-600 border-green-600' : 'bg-white border-gray-300'} ${puedeMarcarEntregas ? 'cursor-pointer hover:border-green-500' : 'cursor-default'} disabled:opacity-60`}
+                      aria-label={it.entregado ? `Desmarcar ${it.texto}` : `Marcar ${it.texto} como entregado`}
+                    >
+                      {it.entregado && <Check className="w-3 h-3 text-white" />}
+                    </button>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-xs ${it.entregado ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                        {it.texto}
+                        <span className={`not-italic ${it.entregado ? 'text-gray-300' : 'text-gray-400'}`}> · {CATEGORIA_LABELS[entry.categoria] || entry.categoria}</span>
+                      </p>
+                      {it.entregado ? (
+                        <p className="text-[11px] text-green-600">
+                          ✓ {it.entregado_por || 'Equipo CoroAyuda'}{it.fecha ? ` · ${fmtFecha(it.fecha)}` : ''}
                         </p>
-                        {it.entregado ? (
-                          <p className="text-[11px] text-green-700">
-                            Entregó: {it.entregado_por || 'Equipo CoroAyuda'}
-                            {it.marcado_por ? ` · Registró: ${it.marcado_por}` : ''}{it.fecha ? ` · ${fmtFecha(it.fecha)}` : ''}
-                          </p>
-                        ) : (
-                          <p className="text-[11px] text-amber-600">Pendiente</p>
-                        )}
-                        {it.nota && <p className="text-[11px] text-gray-500 italic">Nota: {it.nota}</p>}
-                      </div>
-                      {puedeMarcarEntregas && it.entregado && (
-                        <button type="button" onClick={() => marcar(entry, false)} disabled={loading}
-                          className="text-gray-300 hover:text-red-500 transition shrink-0" aria-label="Deshacer entrega">
-                          <Undo2 className="w-3.5 h-3.5" />
-                        </button>
+                      ) : (
+                        <p className="text-[11px] text-amber-500">Pendiente</p>
                       )}
+                      {it.nota && <p className="text-[11px] text-gray-500 italic">Nota: {it.nota}</p>}
                     </div>
-                    {enProceso && puedeEditar && (
-                      <div className="ml-6 mt-1 bg-cyan-50 border border-cyan-100 rounded-lg p-2 space-y-1.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
-                          {SelectorDeliverer}
-                        </div>
-                        <input value={notaItem} onChange={e => setNotaItem(e.target.value)} placeholder="Nota / incidencia (opcional)"
-                          className="w-full text-xs px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500" />
-                        <div className="flex gap-2">
-                          <button onClick={() => marcar(entry, true)} disabled={loading}
-                            className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition btn-press">
-                            {loading ? '...' : 'Confirmar entrega'}
-                          </button>
-                          <button onClick={() => { setEntregandoKey(null); setDeliverer(''); setNotaItem('') }} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
-                        </div>
+                    {puedeMarcarEntregas && it.entregado && (
+                      <button type="button" onClick={() => marcar(entry, false)} disabled={loading}
+                        className="text-gray-300 hover:text-red-500 transition shrink-0" aria-label="Deshacer entrega">
+                        <Undo2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                  {enProceso && puedeMarcarEntregas && (
+                    <div className="ml-6 mt-1 bg-cyan-50 border border-cyan-100 rounded-lg p-2 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[11px] text-gray-500">¿Quién entregó?</span>
+                        {SelectorDeliverer}
+                      </div>
+                      <input value={notaItem} onChange={e => setNotaItem(e.target.value)} placeholder="Nota / incidencia (opcional)"
+                        className="w-full text-xs px-2 py-1 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-cyan-500" />
+                      <div className="flex gap-2">
+                        <button onClick={() => marcar(entry, true)} disabled={loading}
+                          className="text-xs bg-green-600 hover:bg-green-700 text-white px-2.5 py-1 rounded-lg disabled:opacity-50 transition btn-press">
+                          {loading ? '...' : 'Confirmar entrega'}
+                        </button>
+                        <button onClick={() => { setEntregandoKey(null); setDeliverer(''); setNotaItem('') }} className="text-xs text-gray-400 hover:text-gray-600">Cancelar</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+              <div className="mt-2 space-y-1.5">
+                {pendientes.map(renderEntry)}
+
+                {entregadosList.length > 0 && (
+                  <div className={pendientes.length > 0 ? 'pt-0.5' : ''}>
+                    {pendientes.length > 0 && (
+                      <button type="button" onClick={() => setVerEntregados(v => !v)}
+                        className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-gray-600 transition mb-1.5">
+                        {verEntregados ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        {entregadosList.length} entregado{entregadosList.length !== 1 ? 's' : ''}
+                      </button>
+                    )}
+                    {(verEntregados || pendientes.length === 0) && (
+                      <div className="space-y-1.5">
+                        {entregadosList.map(renderEntry)}
                       </div>
                     )}
                   </div>
-                )
-              })}
-              {error && <p className="text-xs text-red-600">{error}</p>}
-            </div>
-          )}
+                )}
+
+                {error && <p className="text-xs text-red-600">{error}</p>}
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>

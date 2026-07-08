@@ -12,7 +12,7 @@ export default async function EditarCasoPage({ params }: { params: { id: string 
 
   const admin = createAdminClient()
   const [{ data: caso }, { data: miPerfil }] = await Promise.all([
-    admin.from('casos').select('*, personas(*), necesidades(id, categoria, estado, descripcion)').eq('id', params.id).single(),
+    admin.from('casos').select('*, personas(*), necesidades(*)').eq('id', params.id).single(),
     admin.from('voluntarios').select('rol').eq('id', user.id).single(),
   ])
 
@@ -24,6 +24,16 @@ export default async function EditarCasoPage({ params }: { params: { id: string 
   const puedeEditar = esAdmin || esTutor || esRegistrador
 
   if (!puedeEditar) redirect(`/casos/${params.id}`)
+
+  // Generar URLs firmadas (1h) para fotos de personas
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET ?? 'fotos-personas'
+  const personasConFoto = await Promise.all(
+    (caso.personas ?? []).map(async (p: any) => {
+      if (!p.foto_url) return { ...p, foto_signed_url: null }
+      const { data } = await admin.storage.from(bucket).createSignedUrl(p.foto_url, 3600)
+      return { ...p, foto_signed_url: data?.signedUrl ?? null }
+    })
+  )
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
@@ -37,7 +47,12 @@ export default async function EditarCasoPage({ params }: { params: { id: string 
         </Link>
       </div>
 
-      <EditarCasoForm caso={caso} personas={caso.personas ?? []} necesidades={caso.necesidades ?? []} />
+      <EditarCasoForm
+        caso={caso}
+        personas={personasConFoto}
+        necesidades={caso.necesidades ?? []}
+        esAdmin={esAdmin}
+      />
     </div>
   )
 }

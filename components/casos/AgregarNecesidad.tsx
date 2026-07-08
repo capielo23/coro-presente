@@ -2,14 +2,25 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS } from '@/lib/utils'
-import { PlusCircle, X, Plus, ListChecks } from 'lucide-react'
+import { PlusCircle, X, Plus, ListChecks, Info, CheckCircle2 } from 'lucide-react'
 
 const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition'
 
 interface Persona { id: string; nombre: string; apellido?: string }
+interface NecesidadExistente { id: string; categoria: string }
 interface ItemEntrada { texto: string; persona_id: string | null }
 
-export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: string; personas?: Persona[] }) {
+export default function AgregarNecesidad({
+  casoId,
+  personas = [],
+  necesidadesExistentes = [],
+  onGuardada,
+}: {
+  casoId: string
+  personas?: Persona[]
+  necesidadesExistentes?: NecesidadExistente[]
+  onGuardada?: (categoriaLabel: string) => void
+}) {
   const router = useRouter()
   const [abierto, setAbierto] = useState(false)
   const [form, setForm] = useState({
@@ -17,14 +28,20 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
     descripcion: '',
     especialidad_requerida: '',
     es_recurrente: false,
-    frecuencia: 'semanal',
+    frecuencia_n: '1',
+    frecuencia_u: 'semanas',
   })
-  const [personaNecesidad, setPersonaNecesidad] = useState('') // '' = Toda la familia
+  const [personaNecesidad, setPersonaNecesidad] = useState('')
   const [items, setItems] = useState<ItemEntrada[]>([])
   const [itemInput, setItemInput] = useState('')
-  const [itemPersona, setItemPersona] = useState('') // '' = Toda la familia
+  const [itemPersona, setItemPersona] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [guardado, setGuardado] = useState<string | null>(null) // label de categoría guardada
+  const [itemConfirmado, setItemConfirmado] = useState(false)
+
+  // Detectar si ya existe una necesidad con la misma categoría
+  const duplicada = necesidadesExistentes.find(n => n.categoria === form.categoria)
 
   const nombrePersona = (pid: string | null) => {
     const p = personas.find(x => x.id === pid)
@@ -36,26 +53,63 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
     if (!t) return
     setItems(prev => [...prev, { texto: t, persona_id: itemPersona || null }])
     setItemInput('')
+    setItemConfirmado(true)
+    setTimeout(() => setItemConfirmado(false), 2000)
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setErrorMsg('')
-    const res = await fetch('/api/necesidades', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, items, persona_id: personaNecesidad || undefined, caso_id: casoId }),
-    })
-    if (!res.ok) { setErrorMsg('No se pudo guardar. Intenta de nuevo.'); setLoading(false); return }
-    setAbierto(false)
+
+    if (duplicada) {
+      // Fusionar artículos en la necesidad existente
+      if (items.length === 0) {
+        setErrorMsg('Esta categoría ya existe. Agrega al menos un artículo para añadirlo a la necesidad existente.')
+        setLoading(false)
+        return
+      }
+      const payload = items.map(i => ({ texto: i.texto, persona_id: i.persona_id || undefined }))
+      const res = await fetch('/api/necesidades', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: duplicada.id, accion: 'agregar_item', items: payload }),
+      })
+      if (!res.ok) { setErrorMsg('No se pudo guardar. Intenta de nuevo.'); setLoading(false); return }
+    } else {
+      const res = await fetch('/api/necesidades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          frecuencia: `${form.frecuencia_n || 1} ${form.frecuencia_u}`,
+          items,
+          persona_id: personaNecesidad || undefined,
+          caso_id: casoId,
+        }),
+      })
+      if (!res.ok) { setErrorMsg('No se pudo guardar. Intenta de nuevo.'); setLoading(false); return }
+    }
+
+    const labelGuardado = CATEGORIA_LABELS[form.categoria] ?? form.categoria
     setLoading(false)
-    setForm({ categoria: 'alimentacion', descripcion: '', especialidad_requerida: '', es_recurrente: false, frecuencia: 'semanal' })
+    setForm({ categoria: 'alimentacion', descripcion: '', especialidad_requerida: '', es_recurrente: false, frecuencia_n: '1', frecuencia_u: 'semanas' })
+    onGuardada?.(labelGuardado)
     setPersonaNecesidad('')
     setItems([])
     setItemInput('')
     setItemPersona('')
+    setGuardado(labelGuardado)
     router.refresh()
+  }
+
+  function resetParaOtra() {
+    setGuardado(null)
+  }
+
+  function cerrar() {
+    setGuardado(null)
+    setAbierto(false)
   }
 
   if (!abierto) {
@@ -70,6 +124,34 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
     )
   }
 
+  if (guardado) {
+    return (
+      <div className="w-full border border-green-200 bg-green-50 rounded-xl p-4 mt-2 space-y-3">
+        <div className="flex items-center gap-2 text-green-700">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <span className="text-sm font-semibold">Necesidad de {guardado} guardada</span>
+        </div>
+        <p className="text-xs text-green-600">¿Quieres agregar otra categoría de necesidad?</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={resetParaOtra}
+            className="flex items-center gap-1.5 text-sm bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-1.5 rounded-lg font-medium transition btn-press"
+          >
+            <Plus className="w-4 h-4" /> Agregar otra categoría
+          </button>
+          <button
+            type="button"
+            onClick={cerrar}
+            className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-white transition"
+          >
+            Listo
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={handleSubmit} className="w-full border border-cyan-200 bg-cyan-50 rounded-xl p-4 mt-2 space-y-3">
       <div className="flex items-center justify-between">
@@ -79,7 +161,7 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
         </button>
       </div>
 
-      {personas.length > 0 && (
+      {personas.length > 0 && !duplicada && (
         <div className="bg-white border border-cyan-200 rounded-lg p-2.5">
           <label className="block text-xs font-semibold text-gray-700 mb-1">¿Para quién es esta necesidad?</label>
           <select
@@ -96,55 +178,99 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
-          <select
-            value={form.categoria}
-            onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))}
-            className={inputCls}
-          >
-            {Object.entries(CATEGORIA_LABELS).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Descripción <span className="text-gray-400 font-normal">(opcional)</span></label>
-          <input
-            value={form.descripcion}
-            onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
-            placeholder="Ej: Insulina, talla M, leche de fórmula..."
-            className={inputCls}
-          />
-        </div>
-      </div>
-
       <div>
-        <label className="block text-xs font-medium text-gray-600 mb-1">
-          ¿Requiere especialista? <span className="text-gray-400 font-normal">(opcional)</span>
-        </label>
-        <input
-          value={form.especialidad_requerida}
-          onChange={e => setForm(p => ({ ...p, especialidad_requerida: e.target.value }))}
-          placeholder="Ej: Pediatría, Psicología, Electricista..."
-          maxLength={100}
+        <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+        <select
+          value={form.categoria}
+          onChange={e => setForm(p => ({ ...p, categoria: e.target.value }))}
           className={inputCls}
-        />
-        <p className="text-xs text-gray-400 mt-1">
-          Si se necesita un voluntario con conocimiento específico, indícalo aquí.
-        </p>
+        >
+          {Object.entries(CATEGORIA_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
       </div>
 
+      {/* Aviso cuando la categoría ya existe */}
+      {duplicada && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <Info className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-700">
+            Ya existe una necesidad de <strong>{CATEGORIA_LABELS[form.categoria] ?? form.categoria}</strong>.
+            {' '}Los artículos que agregues aquí se añadirán a esa necesidad.
+          </p>
+        </div>
+      )}
+
+      {!duplicada && (
+        <>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Descripción <span className="text-gray-400 font-normal">(opcional)</span></label>
+            <input
+              value={form.descripcion}
+              onChange={e => setForm(p => ({ ...p, descripcion: e.target.value }))}
+              placeholder="Ej: Insulina, talla M, leche de fórmula..."
+              className={inputCls}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">
+              ¿Requiere especialista? <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <input
+              value={form.especialidad_requerida}
+              onChange={e => setForm(p => ({ ...p, especialidad_requerida: e.target.value }))}
+              placeholder="Ej: Pediatría, Psicología, Electricista..."
+              maxLength={100}
+              className={inputCls}
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.es_recurrente}
+              onChange={e => setForm(p => ({ ...p, es_recurrente: e.target.checked }))}
+              className="accent-cyan-600 rounded"
+            />
+            Es necesidad recurrente (se repite)
+          </label>
+
+          {form.es_recurrente && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 shrink-0">Cada</span>
+              <input
+                type="number" min="1" max="365"
+                value={form.frecuencia_n}
+                onChange={e => setForm(p => ({ ...p, frecuencia_n: e.target.value }))}
+                className={`${inputCls} w-20`}
+              />
+              <select
+                value={form.frecuencia_u}
+                onChange={e => setForm(p => ({ ...p, frecuencia_u: e.target.value }))}
+                className={`${inputCls} w-auto`}
+              >
+                <option value="dias">días</option>
+                <option value="semanas">semanas</option>
+                <option value="meses">meses</option>
+              </select>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Artículos específicos */}
       <div>
         <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1.5">
           <ListChecks className="w-3.5 h-3.5 text-cyan-600" />
-          Artículos específicos <span className="text-gray-400 font-normal">(opcional)</span>
+          Artículos específicos <span className="text-gray-400 font-normal">{duplicada ? '(requerido)' : '(opcional)'}</span>
         </label>
-        <p className="text-xs text-gray-400 mb-1.5">
-          Para necesidades con varios elementos (ropa por tallas, varios medicamentos, insumos).
-          Asigna cada artículo a un integrante para hacer seguimiento por persona.
-        </p>
+        {!duplicada && (
+          <p className="text-xs text-gray-400 mb-1.5">
+            Para necesidades con varios elementos. Asigna cada artículo a un integrante para hacer seguimiento por persona.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <input
             value={itemInput}
@@ -169,6 +295,11 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
           >
             <Plus className="w-4 h-4" /> Agregar
           </button>
+          {itemConfirmado && (
+            <span className="flex items-center gap-1 text-xs text-green-600 font-medium animate-pulse">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Ítem agregado
+            </span>
+          )}
         </div>
         {items.length > 0 && (
           <ul className="flex flex-wrap gap-1.5 mt-2">
@@ -190,28 +321,6 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
         )}
       </div>
 
-      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={form.es_recurrente}
-          onChange={e => setForm(p => ({ ...p, es_recurrente: e.target.checked }))}
-          className="accent-cyan-600 rounded"
-        />
-        Es necesidad recurrente (se repite)
-      </label>
-
-      {form.es_recurrente && (
-        <select
-          value={form.frecuencia}
-          onChange={e => setForm(p => ({ ...p, frecuencia: e.target.value }))}
-          className={`${inputCls} w-auto`}
-        >
-          <option value="semanal">Cada semana</option>
-          <option value="quincenal">Cada 15 días</option>
-          <option value="mensual">Mensual</option>
-        </select>
-      )}
-
       {errorMsg && <p className="text-sm text-red-600">{errorMsg}</p>}
 
       <div className="flex gap-2 pt-1">
@@ -227,7 +336,7 @@ export default function AgregarNecesidad({ casoId, personas = [] }: { casoId: st
           disabled={loading}
           className="bg-[#0891B2] hover:bg-[#0C4A6E] text-white px-4 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 transition btn-press"
         >
-          {loading ? 'Guardando...' : 'Guardar necesidad'}
+          {loading ? 'Guardando...' : duplicada ? 'Agregar artículos' : 'Guardar necesidad'}
         </button>
       </div>
     </form>

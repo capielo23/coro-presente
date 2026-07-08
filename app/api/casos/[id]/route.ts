@@ -96,7 +96,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   // Actualización de campos generales
   // tutor_id excluido: solo se puede cambiar via tomar_tutoria/liberar_tutor
   const camposPermitidos = [
-    'nombre_caso', 'estado',
+    'nombre_caso', 'estado', 'tipo',
     'direccion_actual', 'tipo_alojamiento', 'sector_coro',
     'ciudad_origen', 'estado_origen', 'zona_afectada',
   ]
