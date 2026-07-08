@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
         .from('necesidades')
         .select('caso_id')
         .eq('estado', 'pendiente')
-      const casoIds = [...new Set((necIds ?? []).map((n: any) => n.caso_id as string))]
+      const casoIds = Array.from(new Set((necIds ?? []).map((n: any) => n.caso_id as string)))
       if (casoIds.length === 0) return NextResponse.json([])
       query = query.in('id', casoIds).neq('estado', 'cerrado')
       break
