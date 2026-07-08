@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS } from '@/lib/utils'
-import { PlusCircle, X, Plus, ListChecks, Info } from 'lucide-react'
+import { PlusCircle, X, Plus, ListChecks, Info, CheckCircle2 } from 'lucide-react'
 
 const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition'
 
@@ -14,10 +14,12 @@ export default function AgregarNecesidad({
   casoId,
   personas = [],
   necesidadesExistentes = [],
+  onGuardada,
 }: {
   casoId: string
   personas?: Persona[]
   necesidadesExistentes?: NecesidadExistente[]
+  onGuardada?: (categoriaLabel: string) => void
 }) {
   const router = useRouter()
   const [abierto, setAbierto] = useState(false)
@@ -26,7 +28,8 @@ export default function AgregarNecesidad({
     descripcion: '',
     especialidad_requerida: '',
     es_recurrente: false,
-    frecuencia: 'semanal',
+    frecuencia_n: '1',
+    frecuencia_u: 'semanas',
   })
   const [personaNecesidad, setPersonaNecesidad] = useState('')
   const [items, setItems] = useState<ItemEntrada[]>([])
@@ -34,6 +37,8 @@ export default function AgregarNecesidad({
   const [itemPersona, setItemPersona] = useState('')
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [guardado, setGuardado] = useState<string | null>(null) // label de categoría guardada
+  const [itemConfirmado, setItemConfirmado] = useState(false)
 
   // Detectar si ya existe una necesidad con la misma categoría
   const duplicada = necesidadesExistentes.find(n => n.categoria === form.categoria)
@@ -48,6 +53,8 @@ export default function AgregarNecesidad({
     if (!t) return
     setItems(prev => [...prev, { texto: t, persona_id: itemPersona || null }])
     setItemInput('')
+    setItemConfirmado(true)
+    setTimeout(() => setItemConfirmado(false), 2000)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -73,19 +80,36 @@ export default function AgregarNecesidad({
       const res = await fetch('/api/necesidades', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, items, persona_id: personaNecesidad || undefined, caso_id: casoId }),
+        body: JSON.stringify({
+          ...form,
+          frecuencia: `${form.frecuencia_n || 1} ${form.frecuencia_u}`,
+          items,
+          persona_id: personaNecesidad || undefined,
+          caso_id: casoId,
+        }),
       })
       if (!res.ok) { setErrorMsg('No se pudo guardar. Intenta de nuevo.'); setLoading(false); return }
     }
 
-    setAbierto(false)
+    const labelGuardado = CATEGORIA_LABELS[form.categoria] ?? form.categoria
     setLoading(false)
-    setForm({ categoria: 'alimentacion', descripcion: '', especialidad_requerida: '', es_recurrente: false, frecuencia: 'semanal' })
+    setForm({ categoria: 'alimentacion', descripcion: '', especialidad_requerida: '', es_recurrente: false, frecuencia_n: '1', frecuencia_u: 'semanas' })
+    onGuardada?.(labelGuardado)
     setPersonaNecesidad('')
     setItems([])
     setItemInput('')
     setItemPersona('')
+    setGuardado(labelGuardado)
     router.refresh()
+  }
+
+  function resetParaOtra() {
+    setGuardado(null)
+  }
+
+  function cerrar() {
+    setGuardado(null)
+    setAbierto(false)
   }
 
   if (!abierto) {
@@ -97,6 +121,34 @@ export default function AgregarNecesidad({
         <PlusCircle className="w-4 h-4" />
         Agregar necesidad
       </button>
+    )
+  }
+
+  if (guardado) {
+    return (
+      <div className="w-full border border-green-200 bg-green-50 rounded-xl p-4 mt-2 space-y-3">
+        <div className="flex items-center gap-2 text-green-700">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <span className="text-sm font-semibold">Necesidad de {guardado} guardada</span>
+        </div>
+        <p className="text-xs text-green-600">¿Quieres agregar otra categoría de necesidad?</p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={resetParaOtra}
+            className="flex items-center gap-1.5 text-sm bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-1.5 rounded-lg font-medium transition btn-press"
+          >
+            <Plus className="w-4 h-4" /> Agregar otra categoría
+          </button>
+          <button
+            type="button"
+            onClick={cerrar}
+            className="text-sm text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg hover:bg-white transition"
+          >
+            Listo
+          </button>
+        </div>
+      </div>
     )
   }
 
@@ -186,15 +238,24 @@ export default function AgregarNecesidad({
           </label>
 
           {form.es_recurrente && (
-            <select
-              value={form.frecuencia}
-              onChange={e => setForm(p => ({ ...p, frecuencia: e.target.value }))}
-              className={`${inputCls} w-auto`}
-            >
-              <option value="semanal">Cada semana</option>
-              <option value="quincenal">Cada 15 días</option>
-              <option value="mensual">Mensual</option>
-            </select>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600 shrink-0">Cada</span>
+              <input
+                type="number" min="1" max="365"
+                value={form.frecuencia_n}
+                onChange={e => setForm(p => ({ ...p, frecuencia_n: e.target.value }))}
+                className={`${inputCls} w-20`}
+              />
+              <select
+                value={form.frecuencia_u}
+                onChange={e => setForm(p => ({ ...p, frecuencia_u: e.target.value }))}
+                className={`${inputCls} w-auto`}
+              >
+                <option value="dias">días</option>
+                <option value="semanas">semanas</option>
+                <option value="meses">meses</option>
+              </select>
+            </div>
           )}
         </>
       )}
@@ -234,6 +295,11 @@ export default function AgregarNecesidad({
           >
             <Plus className="w-4 h-4" /> Agregar
           </button>
+          {itemConfirmado && (
+            <span className="flex items-center gap-1 text-xs text-green-600 font-medium animate-pulse">
+              <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> Ítem agregado
+            </span>
+          )}
         </div>
         {items.length > 0 && (
           <ul className="flex flex-wrap gap-1.5 mt-2">

@@ -3,11 +3,12 @@ import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
-  User, UserPlus, Trash2, Check, CheckCircle2,
-  ChevronLeft, ChevronRight, Camera, X,
+  User, Users, UserPlus, Trash2, Check, CheckCircle2,
+  ChevronLeft, ChevronRight, Camera, X, Pencil, Plus,
 } from 'lucide-react'
 import AgregarNecesidad from '@/components/casos/AgregarNecesidad'
 import { CATEGORIA_LABELS } from '@/lib/utils'
+import ToastContainer, { useToast } from '@/components/ui/ToastContainer'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -464,14 +465,24 @@ export default function EditarCasoForm({
   esAdmin?: boolean
 }) {
   const router = useRouter()
+  const { toasts, showToast } = useToast()
   const [paso, setPaso] = useState(1)
   const [sectoresCoro, setSectoresCoro] = useState<string[]>([])
   const [necesidadesLocales, setNecesidadesLocales] = useState<any[]>(necesidades)
   const [eliminandoNecId, setEliminandoNecId] = useState<string | null>(null)
+  const [expandidaNecId, setExpandidaNecId] = useState<string | null>(null)
+  const [itemAddTxt, setItemAddTxt] = useState('')
+  const [itemAddPersonaId, setItemAddPersonaId] = useState('')
+  const [guardandoItem, setGuardandoItem] = useState(false)
+  const [editandoItemId, setEditandoItemId] = useState<string | null>(null)
+  const [itemEditTxt, setItemEditTxt] = useState('')
+  const [itemEditPersonaId, setItemEditPersonaId] = useState('')
+  const [eliminandoItemId, setEliminandoItemId] = useState<string | null>(null)
 
   const [datosCaso, setDatosCaso] = useState({
     nombre_caso:      caso.nombre_caso ?? '',
     estado:           caso.estado ?? 'activo',
+    tipo:             caso.tipo ?? 'individual',
     ciudad_origen:    caso.ciudad_origen ?? '',
     estado_origen:    caso.estado_origen ?? '',
     zona_afectada:    caso.zona_afectada ?? '',
@@ -501,6 +512,7 @@ export default function EditarCasoForm({
     if (paso === 1) {
       body.nombre_caso   = datosCaso.nombre_caso
       body.estado        = datosCaso.estado
+      body.tipo          = datosCaso.tipo
       body.ciudad_origen = datosCaso.ciudad_origen || null
       body.estado_origen = datosCaso.estado_origen || null
       body.zona_afectada = datosCaso.zona_afectada || null
@@ -527,6 +539,7 @@ export default function EditarCasoForm({
     if (paso <= 2) {
       const ok = await guardarCaso()
       if (!ok) return
+      showToast('Cambios guardados')
     }
     setError('')
     setPaso(p => Math.min(4, p + 1))
@@ -551,11 +564,13 @@ export default function EditarCasoForm({
   function onPersonaSaved(updated: any) {
     setPersonas(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
     setEditandoId(null)
+    showToast(`${updated.nombre} actualizado`)
   }
 
   function onPersonaAdded(nueva: any) {
     setPersonas(prev => [...prev, nueva])
     setAgregando(false)
+    showToast(`${nueva.nombre} agregado`)
   }
 
   async function eliminarPersona(id: string) {
@@ -563,12 +578,89 @@ export default function EditarCasoForm({
     const res = await fetch(`/api/personas/${id}`, { method: 'DELETE' })
     setEliminandoId(null)
     if (res.ok) {
+      const eliminado = personas.find(p => p.id === id)
       setPersonas(prev => prev.filter(p => p.id !== id))
       if (editandoId === id) setEditandoId(null)
+      showToast(`${eliminado?.nombre ?? 'Integrante'} eliminado`)
     } else {
       const data = await res.json().catch(() => ({}))
       alert(data.error ?? 'No se pudo eliminar el integrante.')
     }
+  }
+
+  // ── Item CRUD helpers ─────────────────────────────────────────────────────────
+
+  function actualizarNec(id: string, data: any) {
+    setNecesidadesLocales(prev => prev.map(n => n.id === id ? { ...n, ...data } : n))
+  }
+
+  async function agregarItemANec(necId: string) {
+    const t = itemAddTxt.trim()
+    if (!t) return
+    setGuardandoItem(true)
+    const res = await fetch('/api/necesidades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: necId,
+        accion: 'agregar_item',
+        items: [{ texto: t, persona_id: itemAddPersonaId || undefined }],
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      actualizarNec(necId, { items_entrega: data.items_entrega })
+      setItemAddTxt('')
+      setItemAddPersonaId('')
+      showToast('Artículo agregado')
+    }
+    setGuardandoItem(false)
+  }
+
+  async function eliminarItemDeNec(necId: string, itemId: string) {
+    setEliminandoItemId(itemId)
+    const res = await fetch('/api/necesidades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: necId, accion: 'eliminar_item', item_id: itemId }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      actualizarNec(necId, { items_entrega: data.items_entrega })
+      showToast('Artículo eliminado')
+    }
+    setEliminandoItemId(null)
+  }
+
+  async function guardarEdicionItem(necId: string) {
+    if (!editandoItemId || !itemEditTxt.trim()) return
+    setGuardandoItem(true)
+    const res = await fetch('/api/necesidades', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: necId,
+        accion: 'editar_item',
+        item_id: editandoItemId,
+        nuevo_texto: itemEditTxt.trim(),
+        persona_id: itemEditPersonaId || null,
+      }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      actualizarNec(necId, { items_entrega: data.items_entrega })
+      setEditandoItemId(null)
+      showToast('Artículo actualizado')
+    }
+    setGuardandoItem(false)
+  }
+
+  function abrirExpandida(necId: string) {
+    setExpandidaNecId(prev => {
+      const abriendo = prev !== necId
+      if (abriendo) { setEditandoItemId(null); setItemAddTxt(''); setItemAddPersonaId('') }
+      return abriendo ? necId : null
+    })
   }
 
   // ── Progress bar ─────────────────────────────────────────────────────────────
@@ -675,6 +767,27 @@ export default function EditarCasoForm({
       {/* ── Paso 1: General ──────────────────────────────────────────────── */}
       {paso === 1 && (
         <div className="space-y-4">
+          <div>
+            <label className={labelCls}>Tipo de caso</label>
+            <div className="flex gap-2">
+              {(['individual', 'familiar'] as const).map(t => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setCaso('tipo', t)}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-sm font-medium transition btn-press ${
+                    datosCaso.tipo === t
+                      ? 'bg-cyan-600 text-white border-cyan-600'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-cyan-300'
+                  }`}
+                >
+                  {t === 'individual' ? <User className="w-4 h-4" /> : <Users className="w-4 h-4" />}
+                  {t === 'individual' ? 'Persona individual' : 'Grupo familiar'}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className={labelCls}>Nombre del caso <span className="text-red-500">*</span></label>
             <input
@@ -884,8 +997,8 @@ export default function EditarCasoForm({
 
           {necesidadesLocales.map((nec: any) => {
             const catLabel = CATEGORIA_LABELS[nec.categoria as keyof typeof CATEGORIA_LABELS] ?? nec.categoria
-            const items: { texto: string }[] = nec.items_entrega?.items ?? []
-            // Determinar si es "inicial" (registrada ≤10 min después del caso) o si fue agregada después
+            const items: any[] = nec.items_entrega?.items ?? []
+            const expandida = expandidaNecId === nec.id
             const casoTs = caso.created_at ? new Date(caso.created_at).getTime() : null
             const necTs  = nec.created_at  ? new Date(nec.created_at).getTime()  : null
             const esInicial = casoTs && necTs ? (necTs - casoTs) < 10 * 60 * 1000 : true
@@ -893,45 +1006,176 @@ export default function EditarCasoForm({
               ? new Date(nec.created_at).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })
               : null
             return (
-              <div key={nec.id} className="flex items-start justify-between gap-3 border border-gray-200 rounded-xl px-4 py-3 bg-white">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-semibold text-gray-800">{catLabel}</p>
-                    {esInicial ? (
-                      <span className="text-[10px] font-medium bg-gray-100 text-gray-400 rounded-full px-2 py-0.5">Inicial</span>
-                    ) : fechaCorta ? (
-                      <span className="text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">
-                        Agregada el {fechaCorta}
-                      </span>
-                    ) : null}
+              <div key={nec.id} className={`border rounded-xl bg-white overflow-hidden transition ${expandida ? 'border-cyan-300' : 'border-gray-200'}`}>
+                {/* Cabecera */}
+                <div className="flex items-start justify-between gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-gray-800">{catLabel}</p>
+                      <span className="text-xs text-gray-400">{items.length} artículo{items.length !== 1 ? 's' : ''}</span>
+                      {esInicial ? (
+                        <span className="text-[10px] font-medium bg-gray-100 text-gray-400 rounded-full px-2 py-0.5">Inicial</span>
+                      ) : fechaCorta ? (
+                        <span className="text-[10px] font-medium bg-amber-50 text-amber-600 border border-amber-200 rounded-full px-2 py-0.5">
+                          Agregada el {fechaCorta}
+                        </span>
+                      ) : null}
+                    </div>
+                    {nec.descripcion && !expandida && (
+                      <p className="text-xs text-gray-500 mt-0.5 truncate">{nec.descripcion}</p>
+                    )}
+                    {!expandida && items.length > 0 && (
+                      <ul className="mt-1.5 flex flex-wrap gap-1">
+                        {items.map((it: any, i: number) => (
+                          <li key={it.id ?? i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{it.texto}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  {nec.descripcion && (
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">{nec.descripcion}</p>
-                  )}
-                  {items.length > 0 && (
-                    <ul className="mt-1 flex flex-wrap gap-1">
-                      {items.map((it, i) => (
-                        <li key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{it.texto}</li>
-                      ))}
-                    </ul>
-                  )}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => abrirExpandida(nec.id)}
+                      className={`text-xs font-medium border px-2.5 py-1 rounded-lg transition ${
+                        expandida
+                          ? 'text-cyan-700 border-cyan-300 bg-cyan-50'
+                          : 'text-cyan-600 border-cyan-200 hover:border-cyan-400 hover:text-cyan-800'
+                      }`}
+                    >
+                      {expandida ? 'Listo' : '+ Agregar más'}
+                    </button>
+                    {esAdmin && (
+                      <button
+                        type="button"
+                        disabled={eliminandoNecId === nec.id}
+                        onClick={async () => {
+                          if (!confirm(`¿Eliminar la necesidad "${catLabel}"?`)) return
+                          setEliminandoNecId(nec.id)
+                          await fetch(`/api/necesidades?id=${nec.id}`, { method: 'DELETE' })
+                          setNecesidadesLocales(prev => prev.filter(n => n.id !== nec.id))
+                          setEliminandoNecId(null)
+                          showToast(`Necesidad de ${catLabel} eliminada`)
+                        }}
+                        className="shrink-0 text-gray-300 hover:text-red-500 disabled:opacity-40 transition"
+                        aria-label="Eliminar necesidad"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {esAdmin && (
-                  <button
-                    type="button"
-                    disabled={eliminandoNecId === nec.id}
-                    onClick={async () => {
-                      if (!confirm(`¿Eliminar la necesidad "${catLabel}"?`)) return
-                      setEliminandoNecId(nec.id)
-                      await fetch(`/api/necesidades?id=${nec.id}`, { method: 'DELETE' })
-                      setNecesidadesLocales(prev => prev.filter(n => n.id !== nec.id))
-                      setEliminandoNecId(null)
-                    }}
-                    className="shrink-0 text-gray-300 hover:text-red-500 disabled:opacity-40 transition"
-                    aria-label="Eliminar necesidad"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+
+                {/* Panel expandido */}
+                {expandida && (
+                  <div className="border-t border-cyan-100 bg-cyan-50/30 px-4 pb-4 pt-3 space-y-3" data-items-input>
+                    {/* Lista de artículos con editar/eliminar */}
+                    {items.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {items.map((it: any) => (
+                          <li key={it.id}>
+                            {editandoItemId === it.id ? (
+                              <div className="flex gap-2 items-center">
+                                <input
+                                  value={itemEditTxt}
+                                  onChange={e => setItemEditTxt(e.target.value)}
+                                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); guardarEdicionItem(nec.id) } }}
+                                  onFocus={e => e.target.select()}
+                                  className={`${inputCls} flex-1 text-xs py-1.5`}
+                                  autoFocus
+                                  maxLength={200}
+                                />
+                                {personas.length > 0 && (
+                                  <select
+                                    value={itemEditPersonaId}
+                                    onChange={e => setItemEditPersonaId(e.target.value)}
+                                    className={`${inputCls} text-xs py-1.5 w-auto`}
+                                  >
+                                    <option value="">Toda la familia</option>
+                                    {personas.map(p => (
+                                      <option key={p.id} value={p.id}>{p.nombre} {p.apellido ?? ''}</option>
+                                    ))}
+                                  </select>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => guardarEdicionItem(nec.id)}
+                                  disabled={guardandoItem}
+                                  className="flex items-center gap-1 text-xs bg-cyan-600 hover:bg-cyan-700 text-white px-2.5 py-1.5 rounded-lg disabled:opacity-50 transition"
+                                >
+                                  <Check className="w-3 h-3" /> OK
+                                </button>
+                                <button type="button" onClick={() => setEditandoItemId(null)} className="text-gray-400 hover:text-gray-600 transition">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 group">
+                                <span className={`flex-1 text-xs px-2.5 py-1.5 rounded-lg ${it.entregado ? 'line-through text-gray-400 bg-gray-50' : 'bg-white text-gray-700 border border-gray-100'}`}>
+                                  {it.texto}
+                                  {it.persona_nombre && (
+                                    <span className="text-cyan-600 ml-1">· {it.persona_nombre}</span>
+                                  )}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => { setEditandoItemId(it.id); setItemEditTxt(it.texto); setItemEditPersonaId(it.persona_id ?? '') }}
+                                  className="shrink-0 p-1 text-gray-300 hover:text-cyan-500 transition"
+                                  title="Editar artículo"
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => eliminarItemDeNec(nec.id, it.id)}
+                                  disabled={eliminandoItemId === it.id}
+                                  className="shrink-0 p-1 text-gray-300 hover:text-red-500 disabled:opacity-40 transition"
+                                  title="Eliminar artículo"
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {/* Formulario agregar artículo */}
+                    <div className="space-y-1.5 pt-1">
+                      <p className="text-xs font-medium text-gray-500">Agregar artículo a {catLabel}:</p>
+                      <div className="flex gap-2 flex-wrap">
+                        <input
+                          value={itemAddTxt}
+                          onChange={e => setItemAddTxt(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); agregarItemANec(nec.id) } }}
+                          placeholder="Ej: Arroz, pasta, aceite..."
+                          maxLength={200}
+                          className={`${inputCls} flex-1 min-w-[160px] text-sm`}
+                        />
+                        {personas.length > 0 && (
+                          <select
+                            value={itemAddPersonaId}
+                            onChange={e => setItemAddPersonaId(e.target.value)}
+                            className={`${inputCls} w-auto text-sm`}
+                          >
+                            <option value="">Toda la familia</option>
+                            {personas.map(p => (
+                              <option key={p.id} value={p.id}>{p.nombre} {p.apellido ?? ''}</option>
+                            ))}
+                          </select>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => agregarItemANec(nec.id)}
+                          disabled={guardandoItem || !itemAddTxt.trim()}
+                          className="flex items-center gap-1.5 text-sm bg-gray-900 hover:bg-gray-700 text-white px-3 py-2 rounded-lg disabled:opacity-40 transition whitespace-nowrap btn-press"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          {guardandoItem ? 'Guardando...' : 'Agregar'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             )
@@ -942,12 +1186,18 @@ export default function EditarCasoForm({
               casoId={caso.id}
               personas={personas.map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido }))}
               necesidadesExistentes={necesidadesLocales.map(n => ({ id: n.id, categoria: n.categoria }))}
+              onGuardada={label => {
+                showToast(`Necesidad de ${label} guardada`)
+                // Recargar necesidades desde el servidor para reflejar la nueva
+                fetch(`/api/casos/${caso.id}`).then(() => {}).catch(() => {})
+              }}
             />
           </div>
         </div>
       )}
 
       {NavButtons}
+      <ToastContainer toasts={toasts} />
     </div>
   )
 }
