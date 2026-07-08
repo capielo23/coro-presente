@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { unstable_cache } from 'next/cache'
-import StatCard from '@/components/ui/StatCard'
 import EstadisticasAmpliadas from '@/components/dashboard/EstadisticasAmpliadas'
+import EstadoOperativo from '@/components/dashboard/EstadoOperativo'
 import FiltroGrupo from '@/components/dashboard/FiltroGrupo'
 import Link from 'next/link'
 import { ESTADO_CASO_COLORS, ESTADO_CASO_LABELS } from '@/lib/utils'
-import { Users2, OctagonAlert, ClipboardList, UserX, UserCheck, Users, Sparkles } from 'lucide-react'
+import { UserCheck, Users, Sparkles } from 'lucide-react'
 
 // Estadísticas globales: cacheadas 60s en el servidor — 100 usuarios comparten 1 sola consulta
 const getEstadisticasGlobales = unstable_cache(
@@ -166,12 +166,12 @@ export default async function DashboardPage() {
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Estado operativo</h3>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <StatCard titulo="Total de casos"     valor={totalCasos ?? 0}          Icon={Users2}       variant="default" />
-        <StatCard titulo="Críticos"           valor={casosCriticos ?? 0}       Icon={OctagonAlert} variant="danger"  />
-        <StatCard titulo="Necesidades pend."  valor={necesidadesPendientes ?? 0} Icon={ClipboardList} variant="warning" />
-        <StatCard titulo="Sin tutor"          valor={casosSinTutor ?? 0}       Icon={UserX}        variant="info"    />
-      </div>
+      <EstadoOperativo
+        totalCasos={totalCasos ?? 0}
+        casosCriticos={casosCriticos ?? 0}
+        necesidadesPendientes={necesidadesPendientes ?? 0}
+        casosSinTutor={casosSinTutor ?? 0}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Desglose por estado */}
