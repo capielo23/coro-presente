@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS, ESTADO_NECESIDAD_COLORS } from '@/lib/utils'
 import { RefreshCw, Check, RotateCcw, UserCog, ListChecks, Undo2, PackageCheck, User, Plus, X, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 interface Item { id?: string; texto: string; persona_id?: string | null; persona_nombre?: string | null; entregado: boolean; entregado_por?: string | null; marcado_por?: string | null; fecha?: string; nota?: string | null }
 interface ItemsData { items: Item[]; total: number; entregados: number; notas?: string }
@@ -40,6 +41,7 @@ export default function NecesidadGestion({
   nec, puedeEditar, puedeMarcarEntregas = false, equipo = [], entregas = [], casoCreatedAt, personas = [],
 }: { nec: any; puedeEditar: boolean; puedeMarcarEntregas?: boolean; equipo?: Voluntario[]; entregas?: Entrega[]; casoCreatedAt?: string; personas?: Persona[] }) {
   const router = useRouter()
+  const toast = useToast()
   const [estado, setEstado] = useState<string>(nec.estado)
   const [data, setData] = useState<ItemsData | null>(nec.items_entrega?.items?.length ? (nec.items_entrega as ItemsData) : null)
   const [entregaGuardada] = useState<string>(nec.descripcion_entrega || '')
@@ -125,11 +127,11 @@ export default function NecesidadGestion({
 
   async function entregarItem(it: Item) {
     const row = await patch({ accion: 'entregar_item', item_id: it.id, item_texto: it.texto, entregado_por_id: deliverer || undefined })
-    if (row) { setData(row.items_entrega); setEstado(row.estado); setEntregandoKey(null); setDeliverer('') }
+    if (row) { setData(row.items_entrega); setEstado(row.estado); setEntregandoKey(null); setDeliverer(''); toast.success('Entrega registrada') }
   }
   async function desmarcarItem(it: Item) {
     const row = await patch({ accion: 'desmarcar_item', item_id: it.id, item_texto: it.texto })
-    if (row) { setData(row.items_entrega); setEstado(row.estado) }
+    if (row) { setData(row.items_entrega); setEstado(row.estado); toast.success('Entrega desmarcada') }
   }
 
   // Editor para detallar (crear checklist) o agregar artículos a uno existente
@@ -157,7 +159,7 @@ export default function NecesidadGestion({
     if (extra.length) setEditTexto('')
     const payload = itemsFinal.map(i => ({ texto: i.texto, persona_id: i.persona_id || undefined }))
     const row = await patch({ accion: tieneItems ? 'agregar_item' : 'desglosar', items: payload })
-    if (row) { setData(row.items_entrega); setEstado(row.estado); setDetallarAbierto(false); setEditItems([]) }
+    if (row) { setData(row.items_entrega); setEstado(row.estado); setDetallarAbierto(false); setEditItems([]); toast.success('Artículos guardados') }
   }
   const nombrePersona = (pid: string | null) => personas.find(p => p.id === pid)
     ? `${personas.find(p => p.id === pid)!.nombre} ${personas.find(p => p.id === pid)!.apellido ?? ''}`.trim()
@@ -166,11 +168,11 @@ export default function NecesidadGestion({
   async function guardarEditarItem(item: Item) {
     if (!itemEdit) return
     const row = await patch({ accion: 'editar_item', item_id: item.id, item_texto: item.texto, nuevo_texto: itemEdit.texto, persona_id: itemEdit.persona_id })
-    if (row) { setData(row.items_entrega); setEstado(row.estado); setItemEdit(null) }
+    if (row) { setData(row.items_entrega); setEstado(row.estado); setItemEdit(null); toast.success('Artículo actualizado') }
   }
   async function eliminarItem(item: Item) {
     const row = await patch({ accion: 'eliminar_item', item_id: item.id, item_texto: item.texto })
-    if (row) { setData(row.items_entrega); setEstado(row.estado); setItemDelete(null) }
+    if (row) { setData(row.items_entrega); setEstado(row.estado); setItemDelete(null); toast.success('Artículo eliminado') }
   }
   async function guardarEditarNec() {
     const row = await patch({
@@ -180,7 +182,7 @@ export default function NecesidadGestion({
       frecuencia: esRecurrente ? necForm.frecuencia : undefined,
       persona_id: necForm.persona_id || '',
     })
-    if (row) { setNecEdit(false); router.refresh() }
+    if (row) { setNecEdit(false); toast.success('Necesidad actualizada'); router.refresh() }
   }
   async function eliminarNecesidad() {
     setLoading(true); setError('')
@@ -189,16 +191,16 @@ export default function NecesidadGestion({
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: nec.id }),
       })
       if (!res.ok) throw new Error('del')
-      setEliminado(true); router.refresh()
+      setEliminado(true); toast.success('Necesidad eliminada'); router.refresh()
     } catch { setError('No se pudo eliminar.') } finally { setLoading(false) }
   }
   async function patchEstado(nuevoEstado: string) {
     const row = await patch({ estado: nuevoEstado, entregado_por_id: deliverer || undefined })
-    if (row) { setEstado(nuevoEstado); setDeliverer('') }
+    if (row) { setEstado(nuevoEstado); setDeliverer(''); toast.success(`Necesidad marcada como ${estadoLabel[nuevoEstado] ?? nuevoEstado}`) }
   }
   async function registrarPeriodo() {
     const row = await patch({ accion: 'entrega_periodo', entregado_por_id: deliverer || undefined, descripcion_entrega: periodoNota || undefined })
-    if (row) { setPeriodoAbierto(false); setPeriodoNota(''); setDeliverer(''); router.refresh() }
+    if (row) { setPeriodoAbierto(false); setPeriodoNota(''); setDeliverer(''); toast.success('Entrega del período registrada'); router.refresh() }
   }
 
   const estadoLabel: Record<string, string> = {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
 
@@ -76,6 +77,9 @@ export async function POST(request: NextRequest) {
       { status: 409 }
     )
   }
+
+  // Un registro nuevo suma al badge de pendientes del sidebar (cacheado 30s)
+  revalidateTag('pendientes-count')
 
   // Agregar áreas nuevas al catálogo para que futuros voluntarios las vean
   if (areas_nuevas && areas_nuevas.length > 0) {

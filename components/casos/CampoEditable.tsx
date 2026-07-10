@@ -1,6 +1,8 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Check, X, Pencil } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 interface Props {
   casoId: string
@@ -15,6 +17,8 @@ interface Props {
 export default function CampoEditable({
   casoId, campo, valor, etiqueta, placeholder, puedeEditar = true, listaId,
 }: Props) {
+  const router = useRouter()
+  const toast = useToast()
   const [editando, setEditando] = useState(false)
   const [input, setInput] = useState(valor || '')
   const [valorActual, setValorActual] = useState(valor || '')
@@ -27,7 +31,14 @@ export default function CampoEditable({
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ [campo]: input }),
     })
-    if (res.ok) { setValorActual(input); setEditando(false) }
+    // El resto de la página (server) también muestra estos datos; sincronizar
+    if (res.ok) {
+      setValorActual(input); setEditando(false)
+      toast.success(`${etiqueta} actualizado`)
+      router.refresh()
+    } else {
+      toast.error(`No se pudo guardar ${etiqueta.toLowerCase()}. Intenta de nuevo.`)
+    }
     setSaving(false)
   }
 

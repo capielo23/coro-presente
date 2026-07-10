@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { CheckCircle2, Loader2, AlertCircle, Plus, X } from 'lucide-react'
 import EspecialidadTags from '@/components/ui/EspecialidadTags'
 import TelefonoInput from '@/components/ui/TelefonoInput'
@@ -77,6 +78,7 @@ function enfocarPrimerError(errores: Errores) {
 }
 
 export default function PerfilForm({ perfil, avatarUrl }: { perfil: PerfilData; avatarUrl: string | null }) {
+  const router = useRouter()
   const [nombre, setNombre] = useState(perfil.nombre_completo ?? '')
   const [cedula, setCedula] = useState(perfil.cedula ?? '')
   const [telefono, setTelefono] = useState(perfil.telefono ?? '')
@@ -171,6 +173,8 @@ export default function PerfilForm({ perfil, avatarUrl }: { perfil: PerfilData; 
     if (!res.ok) { setErrorServidor(data.error || 'Error al guardar'); setLoading(false); return }
     setExito(true)
     setLoading(false)
+    // Nombre y % de completitud del sidebar vienen del layout (server); sin esto quedan congelados
+    router.refresh()
     // Solo mostramos aviso si el servidor guardó parcialmente por migración pendiente
     if (data.aviso) setErrorServidor(data.aviso)
     setTimeout(() => setExito(false), 4000)

@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { User, Users, Check, Plus, X, ClipboardList, CheckCircle2, Pencil } from 'lucide-react'
-import ToastContainer, { useToast } from '@/components/ui/ToastContainer'
+import { useToast } from '@/components/ui/ToastContext'
 import CedulaInput from '@/components/ui/CedulaInput'
 import TelefonoInput from '@/components/ui/TelefonoInput'
 import { CATEGORIA_LABELS } from '@/lib/utils'
@@ -108,7 +108,7 @@ export default function NuevoCasoPage() {
   const [necesidades, setNecesidades] = useState<NecesidadForm[]>([])
   const [necDraft, setNecDraft] = useState<NecesidadForm>(necesidadVacia())
   const [itemDraft, setItemDraft] = useState<ItemForm>({ texto: '', cantidad: '', persona_idxs: [] })
-  const { toasts, showToast } = useToast()
+  const toast = useToast()
   const [editandoNecIdx, setEditandoNecIdx] = useState<number | null>(null)
   const [itemEditDraft, setItemEditDraft] = useState<ItemForm>({ texto: '', cantidad: '', persona_idxs: [] })
 
@@ -144,13 +144,13 @@ export default function NuevoCasoPage() {
       return { ...n, items: [...n.items, ...nuevos] }
     }))
     setItemEditDraft({ texto: '', cantidad: '', persona_idxs: itemEditDraft.persona_idxs })
-    showToast('Artículo agregado')
+    toast.success('Artículo agregado')
   }
   function eliminarItemDeNecesidad(necIdx: number, itemIdx: number) {
     setNecesidades(prev => prev.map((n, i) =>
       i !== necIdx ? n : { ...n, items: n.items.filter((_, j) => j !== itemIdx) }
     ))
-    showToast('Artículo eliminado')
+    toast.success('Artículo eliminado')
   }
   function editarItemEnNecesidad(necIdx: number, itemIdx: number) {
     const item = necesidades[necIdx].items[itemIdx]
@@ -170,14 +170,14 @@ export default function NuevoCasoPage() {
       setNecDraft(prev => ({ ...prev, items: [...prev.items, ...nuevos] }))
     }
     setItemDraft({ texto: '', cantidad: '', persona_idxs: itemDraft.persona_idxs })
-    showToast('Artículo registrado')
+    toast.success('Artículo registrado')
   }
   function agregarNecesidadDraft() {
     const label = CATEGORIA_LABELS[necDraft.categoria] ?? necDraft.categoria
     setNecesidades(prev => [...prev, necDraft])
     setNecDraft(necesidadVacia())
     setItemDraft({ texto: '', cantidad: '', persona_idxs: [] })
-    showToast(`Necesidad de ${label} guardada`)
+    toast.success(`Necesidad de ${label} guardada`)
   }
   function eliminarNecesidad(idx: number) {
     setNecesidades(prev => prev.filter((_, i) => i !== idx))
@@ -230,7 +230,7 @@ export default function NuevoCasoPage() {
     setErroresCampos({})
     setError('')
     setPersonaEditandoIdx(null)
-    showToast(`${personas[idx].nombre || 'Integrante'} confirmado`)
+    toast.success(`${personas[idx].nombre || 'Integrante'} confirmado`)
   }
 
   function editarIntegrante(idx: number) {
@@ -263,7 +263,7 @@ export default function NuevoCasoPage() {
     if (prevUrls[idx]) URL.revokeObjectURL(prevUrls[idx]!)
     prevUrls[idx] = file ? URL.createObjectURL(file) : null
     setPreviews(prevUrls)
-    if (file) showToast('Foto cargada')
+    if (file) toast.success('Foto cargada')
   }
 
   async function subirFoto(file: File): Promise<string | undefined> {
@@ -389,7 +389,10 @@ export default function NuevoCasoPage() {
       return
     }
 
+    toast.success('Caso registrado correctamente')
     router.push(`/casos/${data.id}`)
+    // Invalida la caché de cliente para que /casos y /dashboard muestren el caso nuevo
+    router.refresh()
   }
 
   const inputCls = 'w-full px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-sm bg-white transition'
@@ -1080,7 +1083,6 @@ export default function NuevoCasoPage() {
           )}
         </div>
       </form>
-      <ToastContainer toasts={toasts} />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   CheckCircle2, XCircle, Clock, Settings2,
   Users, UserCheck, UserPlus, ShieldCheck, ShieldOff, KeyRound, Copy, X,
@@ -28,6 +29,7 @@ interface YoPerfil {
 
 export default function VoluntariosAdminPage() {
   const toast = useToast()
+  const router = useRouter()
   const [voluntarios, setVoluntarios] = useState<Voluntario[]>([])
   const [yo, setYo] = useState<YoPerfil | null>(null)
   const [loading, setLoading] = useState(true)
@@ -61,6 +63,8 @@ export default function VoluntariosAdminPage() {
         pendiente: 'Marcado como pendiente',
       }
       toast.success(mensajes[estado] ?? 'Cambio guardado')
+      // El badge de pendientes vive en el layout (server); sin esto queda congelado
+      router.refresh()
     } else {
       toast.error('No se pudo realizar el cambio. Intenta de nuevo.')
     }

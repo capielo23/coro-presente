@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Pencil, Sparkles, X, CheckCircle2 } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 interface Voluntario {
   id: string
@@ -44,6 +45,7 @@ export default function AsignarTutor({
   areasNecesidades = [], especialidadesRequeridas = [],
 }: Props) {
   const router = useRouter()
+  const toast = useToast()
   const [editando, setEditando] = useState(false)
   const [tutorId, setTutorId] = useState(tutorActual?.id || '')
   const [estadoCaso, setEstadoCaso] = useState(estadoActual)
@@ -59,14 +61,19 @@ export default function AsignarTutor({
 
   async function guardar() {
     setLoading(true)
-    await fetch(`/api/casos/${casoId}`, {
+    const res = await fetch(`/api/casos/${casoId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ asignar_tutor_id: tutorId || null, estado: estadoCaso }),
     })
-    setEditando(false)
+    if (res.ok) {
+      toast.success('Tutor y estado del caso actualizados')
+      setEditando(false)
+      router.refresh()
+    } else {
+      toast.error('No se pudo guardar el cambio. Intenta de nuevo.')
+    }
     setLoading(false)
-    router.refresh()
   }
 
   if (!puedeEditar) {

@@ -7,6 +7,11 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      // Igual que en admin.ts: evitar que Next cachee las respuestas de auth/datos
+      global: {
+        fetch: (url: RequestInfo | URL, options?: RequestInit) =>
+          fetch(url, { ...options, cache: 'no-store' }),
+      },
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
