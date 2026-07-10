@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS } from '@/lib/utils'
 import FotoLightbox from '@/components/ui/FotoLightbox'
 import { User, Phone, AlertTriangle, CheckCircle2, Check, Undo2, ChevronDown, ChevronRight, PackageCheck } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 interface Item { id?: string; texto: string; entregado: boolean; entregado_por?: string | null; marcado_por?: string | null; fecha?: string; nota?: string | null }
 interface Entry { necesidadId: string; categoria: string; item: Item }
@@ -20,6 +21,7 @@ export default function IntegranteCard({
   persona, itemsPersona, equipo = [], puedeEditar, puedeMarcarEntregas = false, condicionAtendida = false,
 }: { persona: any; itemsPersona: Entry[]; equipo?: Voluntario[]; puedeEditar: boolean; puedeMarcarEntregas?: boolean; condicionAtendida?: boolean }) {
   const router = useRouter()
+  const toast = useToast()
   const [entries, setEntries] = useState<Entry[]>(itemsPersona)
 
   // Sincronizar con datos frescos del servidor tras router.refresh()
@@ -73,6 +75,7 @@ export default function IntegranteCard({
       const actualizado = (row.items_entrega?.items ?? []).find((it: Item) => it.id === entry.item.id || it.texto === entry.item.texto)
       setEntries(prev => prev.map(e => keyOf(e) === keyOf(entry) ? { ...e, item: actualizado ?? { ...e.item, entregado: entregar } } : e))
       setEntregandoKey(null); setDeliverer(''); setNotaItem('')
+      toast.success(entregar ? 'Entrega registrada' : 'Entrega desmarcada')
       router.refresh()
     } catch {
       setError('No se pudo guardar. Intenta de nuevo.')

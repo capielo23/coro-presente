@@ -2,9 +2,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Trash2, AlertTriangle, X } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 export default function EliminarCaso({ casoId, nombreCaso }: { casoId: string; nombreCaso?: string }) {
   const router = useRouter()
+  const toast = useToast()
   const [abierto, setAbierto] = useState(false)
   const [aceptado, setAceptado] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -15,8 +17,9 @@ export default function EliminarCaso({ casoId, nombreCaso }: { casoId: string; n
     try {
       const res = await fetch(`/api/casos/${casoId}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('del')
-      router.push('/casos')
+      toast.success(nombreCaso ? `Caso "${nombreCaso}" eliminado` : 'Caso eliminado')
       router.refresh()
+      router.push('/casos')
     } catch {
       setError('No se pudo eliminar el caso. Intenta de nuevo.')
       setLoading(false)

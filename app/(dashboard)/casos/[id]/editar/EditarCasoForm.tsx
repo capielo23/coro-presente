@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import AgregarNecesidad from '@/components/casos/AgregarNecesidad'
 import { CATEGORIA_LABELS } from '@/lib/utils'
-import ToastContainer, { useToast } from '@/components/ui/ToastContainer'
+import { useToast } from '@/components/ui/ToastContext'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -465,7 +465,7 @@ export default function EditarCasoForm({
   esAdmin?: boolean
 }) {
   const router = useRouter()
-  const { toasts, showToast } = useToast()
+  const toast = useToast()
   const [paso, setPaso] = useState(1)
   const [sectoresCoro, setSectoresCoro] = useState<string[]>([])
   const [necesidadesLocales, setNecesidadesLocales] = useState<any[]>(necesidades)
@@ -539,7 +539,7 @@ export default function EditarCasoForm({
     if (paso <= 2) {
       const ok = await guardarCaso()
       if (!ok) return
-      showToast('Cambios guardados')
+      toast.success('Cambios guardados')
     }
     setError('')
     setPaso(p => Math.min(4, p + 1))
@@ -564,13 +564,13 @@ export default function EditarCasoForm({
   function onPersonaSaved(updated: any) {
     setPersonas(prev => prev.map(p => p.id === updated.id ? { ...p, ...updated } : p))
     setEditandoId(null)
-    showToast(`${updated.nombre} actualizado`)
+    toast.success(`${updated.nombre} actualizado`)
   }
 
   function onPersonaAdded(nueva: any) {
     setPersonas(prev => [...prev, nueva])
     setAgregando(false)
-    showToast(`${nueva.nombre} agregado`)
+    toast.success(`${nueva.nombre} agregado`)
   }
 
   async function eliminarPersona(id: string) {
@@ -581,7 +581,7 @@ export default function EditarCasoForm({
       const eliminado = personas.find(p => p.id === id)
       setPersonas(prev => prev.filter(p => p.id !== id))
       if (editandoId === id) setEditandoId(null)
-      showToast(`${eliminado?.nombre ?? 'Integrante'} eliminado`)
+      toast.success(`${eliminado?.nombre ?? 'Integrante'} eliminado`)
     } else {
       const data = await res.json().catch(() => ({}))
       alert(data.error ?? 'No se pudo eliminar el integrante.')
@@ -612,7 +612,7 @@ export default function EditarCasoForm({
       actualizarNec(necId, { items_entrega: data.items_entrega })
       setItemAddTxt('')
       setItemAddPersonaId('')
-      showToast('Artículo agregado')
+      toast.success('Artículo agregado')
     }
     setGuardandoItem(false)
   }
@@ -627,7 +627,7 @@ export default function EditarCasoForm({
     if (res.ok) {
       const data = await res.json()
       actualizarNec(necId, { items_entrega: data.items_entrega })
-      showToast('Artículo eliminado')
+      toast.success('Artículo eliminado')
     }
     setEliminandoItemId(null)
   }
@@ -650,7 +650,7 @@ export default function EditarCasoForm({
       const data = await res.json()
       actualizarNec(necId, { items_entrega: data.items_entrega })
       setEditandoItemId(null)
-      showToast('Artículo actualizado')
+      toast.success('Artículo actualizado')
     }
     setGuardandoItem(false)
   }
@@ -1054,7 +1054,7 @@ export default function EditarCasoForm({
                           await fetch(`/api/necesidades?id=${nec.id}`, { method: 'DELETE' })
                           setNecesidadesLocales(prev => prev.filter(n => n.id !== nec.id))
                           setEliminandoNecId(null)
-                          showToast(`Necesidad de ${catLabel} eliminada`)
+                          toast.success(`Necesidad de ${catLabel} eliminada`)
                         }}
                         className="shrink-0 text-gray-300 hover:text-red-500 disabled:opacity-40 transition"
                         aria-label="Eliminar necesidad"
@@ -1187,7 +1187,7 @@ export default function EditarCasoForm({
               personas={personas.map(p => ({ id: p.id, nombre: p.nombre, apellido: p.apellido }))}
               necesidadesExistentes={necesidadesLocales.map(n => ({ id: n.id, categoria: n.categoria }))}
               onGuardada={label => {
-                showToast(`Necesidad de ${label} guardada`)
+                toast.success(`Necesidad de ${label} guardada`)
                 // Recargar necesidades desde el servidor para reflejar la nueva
                 fetch(`/api/casos/${caso.id}`).then(() => {}).catch(() => {})
               }}
@@ -1197,7 +1197,6 @@ export default function EditarCasoForm({
       )}
 
       {NavButtons}
-      <ToastContainer toasts={toasts} />
     </div>
   )
 }

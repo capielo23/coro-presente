@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { z } from 'zod'
@@ -141,6 +142,9 @@ export async function POST(request: NextRequest) {
       con_tutor: ser_tutor ?? false,
     },
   })
+
+  // Un caso nuevo cambia los contadores del dashboard (cacheados 60s)
+  revalidateTag('dashboard-stats')
 
   return NextResponse.json({ id: caso.id }, { status: 201 })
 }

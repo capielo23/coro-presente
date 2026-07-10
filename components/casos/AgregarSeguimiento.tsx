@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { PlusCircle, X, MapPin, Phone, MessageCircle, Package, Settings2, CheckCircle2 } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 const inputCls = 'w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition'
 
@@ -19,6 +20,7 @@ function fechaHoy() {
 
 export default function AgregarSeguimiento({ casoId }: { casoId: string }) {
   const router = useRouter()
+  const toast = useToast()
   const [abierto, setAbierto] = useState(false)
   const [form, setForm] = useState({
     tipo_contacto: 'visita',
@@ -45,6 +47,7 @@ export default function AgregarSeguimiento({ casoId }: { casoId: string }) {
     setAbierto(false)
     setLoading(false)
     setForm({ tipo_contacto: 'visita', descripcion: '', proximos_pasos: '', fecha: fechaHoy() })
+    toast.success('Seguimiento registrado')
     router.refresh()
   }
 

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { CATEGORIA_LABELS } from '@/lib/utils'
 import { Users, Check, Undo2, ChevronDown, ChevronRight } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 interface Item { id?: string; texto: string; entregado: boolean; entregado_por?: string | null; fecha?: string; nota?: string | null }
 interface Entry { necesidadId: string; categoria: string; item: Item }
@@ -19,6 +20,7 @@ export default function FamiliaGeneralCard({
   items, equipo = [], puedeMarcarEntregas = false,
 }: { items: Entry[]; equipo?: Voluntario[]; puedeMarcarEntregas?: boolean }) {
   const router = useRouter()
+  const toast = useToast()
   const [entries, setEntries] = useState<Entry[]>(items)
   const [entregandoKey, setEntregandoKey] = useState<string | null>(null)
   const [deliverer, setDeliverer] = useState('')
@@ -50,6 +52,7 @@ export default function FamiliaGeneralCard({
       const actualizado = (row.items_entrega?.items ?? []).find((it: Item) => it.id === entry.item.id || it.texto === entry.item.texto)
       setEntries(prev => prev.map(e => keyOf(e) === keyOf(entry) ? { ...e, item: actualizado ?? { ...e.item, entregado: entregar } } : e))
       setEntregandoKey(null); setDeliverer('')
+      toast.success(entregar ? 'Entrega registrada' : 'Entrega desmarcada')
       router.refresh()
     } catch {
       setError('No se pudo guardar.')

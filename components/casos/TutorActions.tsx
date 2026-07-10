@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { UserCheck, UserMinus, AlertCircle, MapPin, Sparkles, CheckCircle2, X } from 'lucide-react'
+import { useToast } from '@/components/ui/ToastContext'
 
 interface MatchInfo {
   categoriasMatch: string[]
@@ -23,6 +24,7 @@ interface Props {
 
 export default function TutorActions({ casoId, tutorId, tutorNombre, userId, esColaborador, match }: Props) {
   const router = useRouter()
+  const toast = useToast()
   const [loading, setLoading] = useState(false)
   const [localTutorId, setLocalTutorId] = useState(tutorId)
   const [localTutorNombre, setLocalTutorNombre] = useState(tutorNombre)
@@ -45,7 +47,10 @@ export default function TutorActions({ casoId, tutorId, tutorNombre, userId, esC
       setLocalTutorNombre('Tú')
       setMostrarCompromiso(false)
       setAceptado(false)
+      toast.success('Ahora eres el tutor de este caso')
       router.refresh()
+    } else {
+      toast.error('No se pudo tomar la tutoría. Intenta de nuevo.')
     }
     setLoading(false)
   }
@@ -61,7 +66,10 @@ export default function TutorActions({ casoId, tutorId, tutorNombre, userId, esC
       setLocalTutorId(null)
       setLocalTutorNombre(null)
       setConfirmarLiberar(false)
+      toast.success('Dejaste la tutoría del caso')
       router.refresh()
+    } else {
+      toast.error('No se pudo liberar la tutoría. Intenta de nuevo.')
     }
     setLoading(false)
   }
